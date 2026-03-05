@@ -7,11 +7,13 @@ services:
     envVars:
       - key: GEMINI_API_KEY
         sync: false
+      - key: R2_API_TOKEN
+        sync: false
+      - key: R2_ACCOUNT_ID
+        value: "9ce95ed3e1df4a7e1d2a401e116c3c6f"
+      - key: R2_BUCKET
+        value: "scanmyplan"
       - key: PORT
         value: "10000"
-      - key: DATA_DIR
-        value: /data
-    disk:
-      name: scanmyplan-data
-      mountPath: /data
-      sizeGB: 1
+      - key: TMP_DIR
+        value: /tmp/scanmyplan

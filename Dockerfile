@@ -21,8 +21,8 @@ RUN npm ci --production
 # Copy app source
 COPY . .
 
-# Ensure results dir exists
-RUN mkdir -p /data/results
+# Temp dir for OCR processing (ephemeral, no persistence needed)
+RUN mkdir -p /tmp/scanmyplan
 
 EXPOSE 10000
 
