@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How Floor Plan Detection Works: Computer Vision Deep Dive — ScanMyPlan</title>
+<meta name="description" content="Technical deep dive into how floor plan detection works using computer vision. Learn about CNNs, object detection models, room segmentation, and the algorithms behind automated floor plan analysis.">
+
+<!-- Google Analytics 4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4MP227JX2R"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-4MP227JX2R');
+</script>
+
+<style>
+  :root { --primary: #0696D7; --primary-dark: #0476B3; --primary-light: #E8F4FB; --secondary: #1A1A2E; --accent: #F5A623; --text: #333333; --text-light: #666666; --text-muted: #999999; --bg: #FFFFFF; --bg-light: #F8F9FA; --bg-alt: #F0F2F5; --border: #E1E4E8; --shadow: 0 2px 8px rgba(0,0,0,0.08); --shadow-lg: 0 8px 32px rgba(0,0,0,0.12); --radius: 8px; --radius-lg: 12px; --transition: all 0.3s ease; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { color: var(--primary-dark); }
+  .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+  header { background: var(--bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  .header-inner { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 700; color: var(--secondary); }
+  .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; }
+  nav { display: flex; align-items: center; gap: 24px; }
+  nav a { color: var(--text-light); font-weight: 500; font-size: 14px; }
+  .header-cta { background: var(--primary); color: white !important; padding: 10px 20px; border-radius: 6px; font-weight: 600; }
+  article { padding: 48px 0; }
+  .breadcrumb { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+  .breadcrumb a { color: var(--text-muted); }
+  h1 { font-size: 42px; font-weight: 700; color: var(--secondary); margin-bottom: 16px; line-height: 1.2; }
+  .subtitle { font-size: 20px; color: var(--text-light); margin-bottom: 32px; }
+  .meta { font-size: 14px; color: var(--text-muted); margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  h2 { font-size: 28px; font-weight: 700; color: var(--secondary); margin: 40px 0 16px; }
+  h3 { font-size: 20px; font-weight: 600; color: var(--secondary); margin: 24px 0 12px; }
+  p { font-size: 17px; color: var(--text); margin-bottom: 20px; }
+  ul, ol { margin: 0 0 20px 24px; }
+  li { font-size: 17px; color: var(--text); margin-bottom: 8px; }
+  code { background: var(--bg-alt); padding: 2px 6px; border-radius: 4px; font-size: 15px; }
+  pre { background: var(--secondary); color: #fff; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 24px 0; }
+  pre code { background: none; padding: 0; }
+  .diagram { background: var(--bg-alt); padding: 24px; border-radius: 8px; margin: 24px 0; text-align: center; }
+  .diagram-step { display: inline-block; padding: 12px 20px; background: white; border-radius: 6px; margin: 4px; border: 1px solid var(--border);14px; }
+  .diagram-arrow font-size:  { color: var(--primary); font-size: 20px; margin: 0 8px; }
+  .cta-box { background: var(--primary-light); border-radius: var(--radius-lg); padding: 32px; margin: 48px 0; text-align: center; }
+  .cta-box h3 { margin-top: 0; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: var(--transition); border: none; text-decoration: none; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); }
+  footer { background: var(--bg); padding: 32px 0; border-top: 1px solid var(--border); text-align: center; }
+  footer p { font-size: 14px; color: var(--text-muted); }
+  @media (max-width: 600px) { h1 { font-size: 28px; } .diagram-step { display: block; margin: 8px 0; } .diagram-arrow { display: none; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="header-inner">
+      <a href="/" class="logo"><div class="logo-icon">📐</div>ScanMyPlan</a>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/resources/">Resources</a>
+        <a href="/#demo" class="header-cta">Try It Free</a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<article>
+  <div class="container">
+    <div class="breadcrumb"><a href="/resources/">Resources</a> / How Floor Plan Detection Works</div>
+    <h1>How Floor Plan Detection Works: A Computer Vision Deep Dive</h1>
+    <p class="subtitle">Technical exploration of the algorithms, neural networks, and processing pipeline that enable automated floor plan analysis using deep learning and computer vision.</p>
+    <div class="meta">Technical Deep Dive • 15 min read • Updated March 2026</div>
+
+    <p>Floor plan detection represents a specialized application of computer vision—one that combines multiple algorithmic approaches to interpret the unique visual language of architectural drawings. Unlike natural photographs, architectural floor plans present distinct challenges: they include symbolic representations, text annotations, line art, and varying drawing conventions. This article examines the technical architecture behind modern floor plan recognition systems.</p>
+
+    <h2>What Is Floor Plan Detection?</h2>
+    <p>Floor plan detection is the process of automatically identifying and cataloging elements within floor plan images using machine learning and deep learning techniques. This automation transforms static architectural drawings into structured data that can be used for inventory management, space planning, and real estate applications.</p>
+
+    <p>The system takes an input image (a scanned or photographed floor plan) and outputs structured information about detected objects, room boundaries, and spatial relationships—essentially creating a 3D model-ready digital representation.</p>
+
+    <h2>The Detection Pipeline</h2>
+    <p>A complete floor plan analysis system processes images through several distinct stages—a complete end-to-end workflow:</p>
+    
+    <div class="diagram">
+      <span class="diagram-step">Input Image
+      <span class="diagram-arrow">→
+      <span class="diagram-step">Preprocessing
+      <span class="diagram-arrow">→
+      <span class="diagram-step">Feature Extraction
+      <span class="diagram-arrow">→
+      <span class="diagram-step">Object Detection
+      <span class="diagram-arrow">→
+      <span class="diagram-step">Room Segmentation
+      <span class="diagram-arrow">→
+      <span class="diagram-step">Structured Output
+    </div>
+
+    <h2>Stage 1: Image Preprocessing</h2>
+    <p>Floor plan images arrive in vastly different formats—high-resolution CAD exports, scanned documents, phone photographs, or compressed web images. The preprocessing stage normalizes these inputs:</p>
+
+    <ul>
+      <li><strong>Resolution normalization:</strong> Images are scaled to a consistent input size while preserving aspect ratio</li>
+      <li><strong>Contrast enhancement:</strong> Adaptive histogram equalization improves visibility of faint lines</li>
+      <li><strong>Noise reduction:</strong> Median filtering and morphological operations remove scanning artifacts</li>
+      <li><strong>Deskewing:</strong> Rotation detection corrects tilted or skewed images</li>
+      <li><strong>Format conversion:</strong> All inputs are normalized to a consistent internal representation</li>
+      <li><strong>Augmentation:</strong> Training-time augmentation increases dataset diversity through rotations, flips, and color adjustments</li>
+    </ul>
+
+    <h2>Stage 2: Feature Extraction with CNNs</h2>
+    <p>Convolutional neural networks (CNNs) form the backbone of modern object detection. For architectural floor plans, we typically employ a backbone network pretrained on general image features, then fine-tuning on architectural drawings:</p>
+
+    <h3>Backbone Architectures</h3>
+    <p>Common backbone choices in computer science include:</p>
+    <ul>
+      <li><strong>ResNet:</strong> Residual networks with skip connections, excellent for extracting deep features</li>
+      <li><strong>EfficientNet:</strong> Balanced accuracy and computational efficiency</li>
+      <li><strong>Vision Transformer (ViT):</strong> Transformer-based architecture gaining popularity for visual tasks</li>
+      <li><strong>VGGNet:</strong> Classic architecture often used as a baseline</li>
+    </ul>
+
+    <p>The CNN backbone produces a feature map—a multi-dimensional representation encoding the image's visual patterns at different levels of abstraction. This is where the neural network learns to recognize edges, shapes, and patterns.</p>
+
+    <h2>Stage 3: Object Detection</h2>
+    <p>The core detection stage identifies individual furniture items, fixtures, and equipment using object detection. Modern systems typically employ one of two approaches:</p>
+
+    <h3>Two-Stage Detectors (Faster R-CNN)</h3>
+    <p>R-CNN (Region-based Convolutional Neural Network) and its variants first propose regions of interest, then classify and refine each proposal:</p>
+    <pre><code>1. Region Proposal Network (RPN) generates candidate bounding boxes
+2. ROI pooling extracts features for each proposal
+3. Classification head predicts object category
+4. Regression head refines bounding box coordinates</code></pre>
+    <p>Two-stage detectors offer higher average precision but process images more slowly.</p>
+
+    <h3>Single-Stage Detectors (YOLO)</h3>
+    <p>YOLO (You Only Look Once) processes the entire image in a single forward pass:</p>
+    <pre><code>1. Image is divided into a grid
+2. Each grid cell predicts bounding boxes and class probabilities
+3. Non-maximum suppression eliminates duplicate detections
+4. Final detections include confidence scores</code></pre>
+    <p>Single-stage detectors are significantly faster, making them suitable for real-time applications and robotics integration.</p>
+
+    <h3>Understanding Bounding Boxes and Polygons</h3>
+    <p>Object detection outputs include bounding boxes—rectangular regions that enclose detected objects. More advanced systems use polygon predictions for precise outlines:</p>
+    <ul>
+      <li><strong>Bounding Box:</strong> [x_min, y_min, width, height] - simple rectangular representation</li>
+      <li><strong>Polygon:</strong> Series of [x, y] coordinates tracing the object's outline</li>
+      <li><strong>Keypoint:</strong> Specific points of interest (e.g., corners, door handles)</li>
+      <li><strong>Contour:</strong> The boundary curve of an object detected through pattern recognition</li>
+    </ul>
+
+    <h3>Evaluation Metrics</h3>
+    <p>Object detection performance is measured using standard metrics:</p>
+    <ul>
+      <li><strong>Intersection over Union (IoU):</strong> Measures overlap between predicted and ground truth bounding boxes</li>
+      <li><strong>Average Precision (AP):</strong> Area under the precision-recall curve for each class</li>
+      <li><strong>Mean Average Precision (mAP):</strong> Average AP across all object categories</li>
+      <li><strong>Recall:</strong> Percentage of ground truth objects successfully detected</li>
+    </ul>
+
+    <h3>Detection Classes</h3>
+    <p>Floor plan detection systems identify dozens of object categories relevant to real estate and space planning:</p>
+    <ul>
+      <li><strong>Seating:</strong> Chairs, sofas, stools, benches, styling chairs</li>
+      <li><strong>Tables:</strong> Desks, conference tables, dining tables, workstations</li>
+      <li><strong>Storage:</strong> Cabinets, shelves, closets, filing cabinets</li>
+      <li><strong>Equipment:</strong> Computers, printers, kitchen appliances, salon equipment</li>
+      <li><strong>Fixtures:</strong> Lighting, outlets, switches, HVAC vents</li>
+      <li><strong>Structural:</strong> Walls, doors, windows, columns</li>
+    </ul>
+
+    <h2>Stage 4: Room Segmentation</h2>
+    <p>Beyond detecting individual objects, sophisticated systems identify room boundaries using semantic segmentation and room segmentation:</p>
+
+    <h3>Semantic Segmentation Networks</h3>
+    <p>Fully Convolutional Networks (FCN) and U-Net architectures assign a class label to each pixel:</p>
+    <pre><code>Input Image → Encoder (downsampling) → Decoder (upsampling) → Per-pixel classification</code></pre>
+
+    <p>The segmentation output enables:</p>
+    <ul>
+      <li>Room types classification (bedroom, bathroom, kitchen)</li>
+      <li>Wall segmentation for accurate boundary detection</li>
+      <li>Room names extraction via OCR</li>
+      <li>Square footage calculation</li>
+      <li>Per-room item grouping</li>
+    </ul>
+
+    <h3>Optical Character Recognition</h3>
+    <p>OCR (Optical Character Recognition) extracts text from floor plans—room numbers, dimensions, and labels. Common tools include Tesseract and cloud-based APIs. This is essential for room names and validation of detected areas.</p>
+
+    <h2>Stage 5: Post-Processing and Output</h2>
+    <p>Post-processing refines raw detections before final output:</p>
+
+    <ul>
+      <li><strong>Confidence filtering:</strong> Apply minimum threshold (typically 0.7) to eliminate low-confidence detections</li>
+      <li><strong>Non-maximum suppression:</strong> Remove overlapping duplicate detections</li>
+      <li><strong>Coordinate transformation:</strong> Map detection coordinates back to original image dimensions</li>
+      <li><strong>Room assignment:</strong> Associate each detection with its containing room</li>
+      <li><strong>Format conversion:</strong> Generate JSON, CSV, or API responses</li>
+    </ul>
+
+    <h2>Technical Implementation Considerations</h2>
+    
+    <h3>Training Data Requirements</h3>
+    <p>Effective floor plan detection requires substantial annotated training dataset:</p>
+    <ul>
+      <li>Thousands of labeled floor plan images</li>
+      <li>Annotation of bounding boxes for each object category</li>
+      <li>Room boundary annotations for segmentation model training</li>
+      <li>Diverse samples spanning residential floor plan, commercial, and industrial styles</li>
+      <li>Large-scale data collection for robust model performance</li>
+    </ul>
+
+    <h3>Model Training and Optimization</h3>
+    <p>Training machine learning models for floor plan detection involves:</p>
+    <ul>
+      <li><strong>Hyperparameter tuning:</strong> Learning rate, batch size, optimization algorithm selection</li>
+      <li><strong>Transfer learning:</strong> Starting from pretrained ImageNet weights</li>
+      <li><strong>Fine-tuning:</strong> Adapting the module to architectural drawings</li>
+      <li><strong>Loss functions:</strong> Balancing classification and localization accuracy</li>
+    </ul>
+
+    <h3>Inference Optimization</h3>
+    <p>Production systems optimize for speed through various optimization techniques:</p>
+    <ul>
+      <li><strong>GPU acceleration:</strong> CUDA-enabled inference on cloud GPUs</li>
+      <li><strong>Model quantization:</strong> INT8 inference reduces memory and latency</li>
+      <li><strong>Batch processing:</strong> Process multiple images concurrently</li>
+      <li><strong>Edge deployment:</strong> ONNX Runtime enables diverse deployment targets</li>
+    </ul>
+
+    <h3>Handling Edge Cases</h3>
+    <p>Robust systems handle challenging inputs through sophisticated workflow design:</p>
+    <ul>
+      <li>Hand-drawn sketches with non-standard symbols</li>
+      <li>Very high-resolution images (100MB+ CAD exports)</li>
+      <li>Multi-floor plans requiring page separation</li>
+      <li>Non-English text and regional conventions</li>
+    </ul>
+
+    <h2>Integration Architecture</h2>
+    <p>For developers building floor plan detection into applications, the typical integration pattern uses a REST API:</p>
+    
+    <pre><code>// API Integration Example
+const response = await fetch('/api/detect', {
+  method: 'POST',
+  body: formData  // input image
+});
+
+const result = await response.json();
+// {
+//   "items": [
+//     { "id": 1, "RoomNo": "101", "ItemName": "Chair", 
+//       "box_2d": [ymin, xmin, ymax, xmax], "Accuracy": 0.94 },
+//     { "id": 2, "RoomNo": "101", "ItemName": "Desk", 
+//       "box_2d": [ymin, xmin, ymax, xmax], "Accuracy": 0.89 }
+//   ],
+//   "rooms": [{ "RoomNo": "101", "RoomName": "Bedroom", ... }]
+// }</code></pre>
+
+    <p>The API returns structured data that can be consumed by LLMs (Large Language Models), building management systems, or 3D model generation pipelines.</p>
+
+    <h2>Open Source Resources</h2>
+    <p>Many developers contribute to the floor plan recognition space. Popular resources on GitHub include:</p>
+    <ul>
+      <li>Object detection model implementations (YOLO, Faster R-CNN, Mask R-CNN)</li>
+      <li>Segmentation datasets and annotation tools</li>
+      <li>Pre-trained models for architectural element detection</li>
+      <li>End-to-end pipeline implementations</li>
+    </ul>
+
+    <h2>Conclusion</h2>
+    <p>Modern floor plan detection combines multiple artificial intelligence techniques—from convolutional neural networks for feature extraction to semantic segmentation for room analysis. The workflow transforms static architectural drawings into actionable data for real estate, construction, and space planning applications.</p>
+
+    <p>As deep learning models continue to improve—with better hyperparameters, more diverse training dataset, and enhanced optimization—the accuracy and capabilities of floor plan recognition systems will only increase.</p>
+
+    <div class="cta-box">
+      <h3>See It in Action</h3>
+      <p>Experience our detection engine firsthand. Upload any floor plan to see the computer vision pipeline process your image.</p>
+      <a href="/#demo" class="btn btn-primary">Try Floor Plan Detection →</a>
+    </div>
+
+  </div>
+</article>
+
+<footer>
+  <div class="container">
+    <p>© 2026 ScanMyPlan. All rights reserved.</p>
+  </div>
+</footer>
+
+</body>
+</html>

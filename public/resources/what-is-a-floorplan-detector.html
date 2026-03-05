@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What Is a Floor Plan Detector? — ScanMyPlan</title>
+<meta name="description" content="Learn what a floor plan detector is, how it uses AI and computer vision to identify furniture and fixtures, and its applications in real estate, construction, and insurance.">
+
+<!-- Google Analytics 4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4MP227JX2R"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-4MP227JX2R');
+</script>
+
+<style>
+  :root {
+    --primary: #0696D7;
+    --primary-dark: #0476B3;
+    --primary-light: #E8F4FB;
+    --secondary: #1A1A2E;
+    --accent: #F5A623;
+    --text: #333333;
+    --text-light: #666666;
+    --text-muted: #999999;
+    --bg: #FFFFFF;
+    --bg-light: #F8F9FA;
+    --bg-alt: #F0F2F5;
+    --border: #E1E4E8;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+    --radius: 8px;
+    --radius-lg: 12px;
+    --transition: all 0.3s ease;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { color: var(--primary-dark); }
+  .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+  header { background: var(--bg); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  .header-inner { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 700; color: var(--secondary); }
+  .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; }
+  nav { display: flex; align-items: center; gap: 24px; }
+  nav a { color: var(--text-light); font-weight: 500; font-size: 14px; }
+  .header-cta { background: var(--primary); color: white !important; padding: 10px 20px; border-radius: 6px; font-weight: 600; }
+
+  article { padding: 48px 0; }
+  .breadcrumb { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+  .breadcrumb a { color: var(--text-muted); }
+  h1 { font-size: 42px; font-weight: 700; color: var(--secondary); margin-bottom: 16px; line-height: 1.2; }
+  .subtitle { font-size: 20px; color: var(--text-light); margin-bottom: 32px; }
+  .meta { font-size: 14px; color: var(--text-muted); margin-bottom: 40px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  
+  h2 { font-size: 28px; font-weight: 700; color: var(--secondary); margin: 40px 0 16px; }
+  h3 { font-size: 20px; font-weight: 600; color: var(--secondary); margin: 24px 0 12px; }
+  p { font-size: 17px; color: var(--text); margin-bottom: 20px; }
+  ul, ol { margin: 0 0 20px 24px; }
+  li { font-size: 17px; color: var(--text); margin-bottom: 8px; }
+  
+  code { background: var(--bg-alt); padding: 2px 6px; border-radius: 4px; font-size: 15px; }
+  pre { background: var(--secondary); color: #fff; padding: 20px; border-radius: 8px; overflow-x: auto; margin: 24px 0; }
+  pre code { background: none; padding: 0; }
+
+  .cta-box { background: var(--primary-light); border-radius: var(--radius-lg); padding: 32px; margin: 48px 0; text-align: center; }
+  .cta-box h3 { margin-top: 0; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: var(--transition); border: none; text-decoration: none; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); }
+
+  footer { background: var(--bg); padding: 32px 0; border-top: 1px solid var(--border); text-align: center; }
+  footer p { font-size: 14px; color: var(--text-muted); }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 28px; }
+    .subtitle { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="header-inner">
+      <a href="/" class="logo">
+        <div class="logo-icon">📐</div>
+        ScanMyPlan
+      </a>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/resources/">Resources</a>
+        <a href="/#demo" class="header-cta">Try It Free</a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<article>
+  <div class="container">
+    <div class="breadcrumb"><a href="/resources/">Resources</a> / What Is a Floor Plan Detector?</div>
+    <h1>What Is a Floor Plan Detector?</h1>
+    <p class="subtitle">A comprehensive guide to understanding floor plan detection technology and its transformative applications in inventory management, construction, and insurance documentation.</p>
+    <div class="meta">Technical Guide • 12 min read • Updated March 2026</div>
+
+    <h2>Introduction</h2>
+    <p>A floor plan detector is an artificial intelligence system that analyzes architectural drawings, blueprints, and digital floor plans to automatically identify, classify, and locate furniture, fixtures, equipment, and structural elements. Unlike manual counting methods—which are time-consuming, error-prone, and inconsistent—floor plan detectors leverage computer vision and deep learning to extract structured data from visual inputs in seconds.</p>
+    <p>This technology bridges the gap between visual representations (the floor plan image) and structured data (inventory lists, coordinates, dimensions), enabling automation across numerous industries including retail space planning, insurance documentation, construction project management, and real estate staging.</p>
+    <p>At its foundation, a floor plan detector uses machine learning algorithms trained on a diverse dataset of architectural floor plans. The system performs semantic segmentation to identify regions, bounding boxes to locate objects, and text recognition (OCR) to extract room labels and annotations. Advanced implementations may leverage ResNet architectures for image recognition, Mask R-CNN for instance segmentation, and Tesseract for optical character recognition.</p>
+
+    <h2>How Floor Plan Detection Works</h2>
+    <p>At its core, a floor plan detector combines multiple computer vision and image processing techniques to interpret the complex visual language of architectural drawings. The workflow typically involves preprocessing the raster image (such as a PNG file), extracting text via OCR, performing object detection to find furniture and fixtures, and applying semantic segmentation to identify room boundaries.</p>
+    
+    <h3>1. Image Preprocessing</h3>
+    <p>The system first normalizes the input image, handling variations in resolution, contrast, rotation, and file format. This preprocessing stage ensures consistent detection quality regardless of how the floor plan was originally created or exported. The image is converted to high-quality pixels suitable for neural network processing, and various modules handle noise reduction and contrast enhancement.</p>
+
+    <h3>2. Object Detection</h3>
+    <p>Using specialized neural networks—typically variants of YOLO (You Only Look Once), Faster R-CNN, or Mask R-CNN—the system identifies individual objects within the floor plan. These models have been trained on thousands of annotated floor plans (a comprehensive dataset) to recognize common elements. The detection results include bounding boxes that precisely outline each object, and the algorithms optimize for average precision metrics to ensure accuracy.</p>
+    <ul>
+      <li><strong>Furniture:</strong> Chairs, tables, desks, beds, sofas, waiting areas</li>
+      <li><strong>Fixtures:</strong> Lighting fixtures, outlets, switches, HVAC units</li>
+      <li><strong>Equipment:</strong> Kitchen appliances, salon equipment, medical devices</li>
+      <li><strong>Structural elements:</strong> Walls, doors, windows, room boundaries</li>
+    </ul>
+    <p>Advanced models may use ResNet backbones for feature extraction, and fine-tuning on domain-specific floor plans can significantly improve detection accuracy for specialized use cases like BIM (Building Information Modeling) workflows.</p>
+
+    <h3>3. Text Recognition (OCR)</h3>
+    <p>Floor plans contain valuable text information including room numbers, labels, and dimensions. The OCR module extracts this text using optical character recognition techniques, enabling floor plan analysis that goes beyond simple object detection. Tesseract and other open source OCR engines are commonly used, and the recognized text can be linked to detected objects for enriched detection results.</p>
+
+    <h3>4. Spatial Analysis</h3>
+    <p>Beyond identifying objects, the system calculates precise coordinates, dimensions, and spatial relationships. Each detected item is mapped to its location within the floor plan, enabling applications like "click to highlight" or automated space planning suggestions. The system outputs polygons representing object boundaries, which can be used in robotics applications for navigation and path planning.</p>
+
+    <h3>5. Room Segmentation</h3>
+    <p>Advanced detectors also identify room boundaries and assign room numbers or names using semantic segmentation. This enables grouping detected items by location—a critical feature for inventory management and facilities management. Room segmentation helps optimize space utilization and supports real-world applications in building management.</p>
+
+    <h2>Key Features of Modern Floor Plan Detectors</h2>
+    <p>Today's floor plan detection systems offer capabilities far beyond simple object counting. The system includes multiple modules for image processing, object detection, text recognition, and room segmentation, creating a complete floor plan recognition pipeline:</p>
+    
+    <ul>
+      <li><strong>Multi-format support:</strong> Process PNG, JPG, PDF, raster images, and CAD files</li>
+      <li><strong>Structured output:</strong> Export to JSON, CSV, or API-ready formats with detection results</li>
+      <li><strong>Confidence scores:</strong> Each detection includes accuracy percentages and average precision metrics</li>
+      <li><strong>Edit capabilities:</strong> Web interfaces for reviewing and correcting AI detections</li>
+      <li><strong>Batch processing:</strong> Analyze multiple floor plans sequentially</li>
+      <li><strong>Integration APIs:</strong> Connect directly to inventory systems, ERPs, or CRM platforms</li>
+      <li><strong>Open source components:</strong> Many systems use open source libraries and algorithms available on GitHub</li>
+      <li><strong>High-quality output:</strong> Optimized for high-quality results with precise bounding boxes and polygons</li>
+    </ul>
+
+    <h2>Industry Applications</h2>
+    
+    <h3>Retail and Commercial Real Estate</h3>
+    <p>Store planners use floor plan detection to quickly inventory existing furniture and fixtures when evaluating new locations or planning renovations. The automated count replaces hours of manual site visits.</p>
+
+    <h3>Insurance and Risk Assessment</h3>
+    <p>Insurance adjusters document equipment inventories for commercial properties, creating precise records for coverage verification and claims processing. The spatial data provides proof of location—a valuable detail for high-value equipment.</p>
+
+    <h3>Franchise Operations</h3>
+    <p>Multi-location businesses standardize equipment across franchises by comparing detected inventories against specifications. Discrepancies are flagged automatically, ensuring brand consistency.</p>
+
+    <h3>Interior Design and Space Planning</h3>
+    <p>Designers quickly understand existing conditions before proposing layouts. Thedetection data feeds directly into CAD software and space planning tools, accelerating the design cycle.</p>
+
+    <h2>Technical Considerations</h2>
+    <p>When evaluating floor plan detection solutions, consider these technical factors to optimize your workflow:</p>
+    
+    <ul>
+      <li><strong>Model training data:</strong> Systems trained on diverse floor plan styles (commercial, residential, industrial) perform better across use cases. The quality and size of the training dataset directly impacts detection accuracy</li>
+      <li><strong>Detection threshold:</strong> Adjustable confidence thresholds let you balance false positives against missed detections</li>
+      <li><strong>Custom categories:</strong> Ability to add industry-specific objects beyond the default detection classes</li>
+      <li><strong>Processing speed:</strong> Cloud-based systems typically deliver results in 30-120 seconds, though you can optimize for speed or accuracy depending on needs</li>
+      <li><strong>Data privacy:</strong> Enterprise deployments should ensure floor plans are processed securely and not retained for model training</li>
+      <li><strong>BIM integration:</strong> For advanced architectural floor plans, ensure the system can export to BIM formats</li>
+      <li><strong>Fine-tuning options:</strong> Look for systems that allow fine-tuning on your specific floor plan types to improve accuracy</li>
+    </ul>
+
+    <h2>Open Source Resources</h2>
+    <p>Many floor plan detection capabilities are available through open source tools. Developers can find reference implementations, pre-trained models, and datasets on GitHub. These resources enable organizations to build custom floor plan analysis solutions, fine-tune existing models, and integrate detection capabilities into their own workflows. Popular open source projects include implementations of Mask R-CNN, YOLO, and other neural network architectures specifically adapted for architectural floor plans.</p>
+
+    <h2>Getting Started</h2>
+    <p>Most floor plan detection systems offer straightforward integration following a simple workflow:</p>
+    <ol>
+      <li>Upload the floor plan image via web interface or API</li>
+      <li>The system processes the image (typically 30-90 seconds) through its detection modules</li>
+      <li>Review detection results in a web interface or receive via webhook</li>
+      <li>Export to your preferred format or integrate with downstream systems</li>
+    </ol>
+    <p>The detection results include bounding boxes, polygons, text recognized via OCR, and room segmentation data—all optimized for high-quality output. Whether you're working with simple blueprints or complex architectural floor plans, modern floor plan recognition systems can handle the task.</p>
+
+    <div class="cta-box">
+      <h3>Try It Now</h3>
+      <p>Upload a floor plan and see our AI detection in action. No account required.</p>
+      <a href="/#demo" class="btn btn-primary">Upload Floor Plan →</a>
+    </div>
+
+  </div>
+</article>
+
+<footer>
+  <div class="container">
+    <p>© 2026 ScanMyPlan. All rights reserved.</p>
+  </div>
+</footer>
+
+</body>
+</html>

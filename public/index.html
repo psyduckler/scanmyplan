@@ -3,38 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Salon Floorplan Detector</title>
+<title>ScanMyPlan — AI Floor Plan Detection & Furniture Counting</title>
+<meta name="description" content="Detect and count furniture, fixtures, and equipment from floor plans in seconds using AI. Upload a PNG and get structured inventory data instantly.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="stylesheet" href="/styles.css">
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4MP227JX2R"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-4MP227JX2R');</script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 20px; }
-  .container { max-width: 1600px; margin: 0 auto; }
-  h1 { text-align: center; margin-bottom: 20px; color: #333; }
+  /* Detector-specific styles */
   .upload-area { border: 3px dashed #ccc; border-radius: 12px; padding: 40px; text-align: center; background: #fff;
     cursor: pointer; transition: border-color 0.3s; margin-bottom: 20px; }
-  .upload-area:hover, .upload-area.dragover { border-color: #007bff; background: #f0f7ff; }
-  .top-controls { margin-bottom: 20px; }
+  .upload-area:hover, .upload-area.dragover { border-color: var(--primary); background: var(--primary-light); }
   .fields { display: flex; gap: 12px; margin-bottom: 12px; }
   .fields input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-  .btn { padding: 12px 24px; background: #007bff; color: #fff; border: none; border-radius: 6px; cursor: pointer;
+  .btn-detect { padding: 12px 24px; background: var(--primary); color: #fff; border: none; border-radius: 6px; cursor: pointer;
     font-size: 16px; width: 100%; }
-  .btn:disabled { background: #999; cursor: not-allowed; }
-  .btn:hover:not(:disabled) { background: #0056b3; }
+  .btn-detect:disabled { background: #999; cursor: not-allowed; }
+  .btn-detect:hover:not(:disabled) { background: var(--primary-dark); }
   .status { text-align: center; margin: 10px 0; color: #666; font-style: italic; }
   .error { color: #d00; text-align: center; margin: 10px 0; }
   .progress-wrap { margin: 16px 0; display: none; }
   .progress-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
-  .progress-fill { height: 100%; background: linear-gradient(90deg, #007bff, #00b4d8); border-radius: 3px; transition: width 0.5s ease; width: 0%; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #00b4d8); border-radius: 3px; transition: width 0.5s ease; width: 0%; }
   .progress-text { font-size: 13px; color: #666; margin-top: 6px; text-align: center; }
-
-  /* Side-by-side layout */
   .split-view { display: flex; gap: 20px; align-items: flex-start; }
   .left-panel { flex: 0 0 420px; max-height: 85vh; overflow-y: auto; }
-  .right-panel { flex: 1; position: sticky; top: 20px; }
-
+  .right-panel { flex: 1; position: sticky; top: 84px; }
   .download-btns { display: flex; gap: 10px; margin-bottom: 10px; }
   .download-btns button { padding: 6px 14px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; font-size: 13px; }
   .download-btns button:hover { background: #f0f0f0; }
-
   table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; }
   th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #eee; font-size: 12px; }
   th { background: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 1; }
@@ -45,47 +43,155 @@
   .icon-btn:hover { opacity: 1; }
   .actions { white-space: nowrap; width: 60px; }
   .item-name.editing { background: #fff; }
-  .item-name input { border: 1px solid #007bff; padding: 2px 4px; font-size: 13px; width: 100%; }
-
+  .item-name input { border: 1px solid var(--primary); padding: 2px 4px; font-size: 13px; width: 100%; }
   tr.item-row.active { background: #cce5ff; }
-
   .img-container { position: relative; display: inline-block; }
   .img-container img { display: block; max-width: 100%; border: 1px solid #ddd; border-radius: 8px; }
   .img-container canvas { position: absolute; top: 0; left: 0; pointer-events: none; border-radius: 8px; }
   .recent-card { display:block;padding:12px 16px;background:#fff;border:1px solid #ddd;border-radius:8px;text-decoration:none;color:#333;min-width:200px;transition:box-shadow 0.15s; }
   .recent-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
   .item-count { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+  #demo .container { max-width: 1600px; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>🪑 Salon Floorplan Detector</h1>
 
-  <div class="top-controls">
-    <div class="upload-area" id="dropzone" onclick="document.getElementById('fileInput').click()">
-      <p>📁 Drag & drop a floor plan PNG here, or click to browse</p>
-      <input type="file" id="fileInput" accept="image/png,image/jpeg" hidden>
-    </div>
-    <div class="fields">
-      <input type="text" id="documentNo" placeholder="DocumentNo (e.g. Q1005)">
-      <input type="text" id="customer" placeholder="Customer (e.g. PH)">
-    </div>
-    <button class="btn" id="detectBtn" disabled>Detect Items</button>
-    <div class="status" id="status"></div>
-    <div class="error" id="error"></div>
-    <div class="progress-wrap" id="progressWrap">
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="progress-text" id="progressText"></div>
+<header>
+  <div class="container">
+    <div class="header-inner">
+      <a href="/" class="logo"><div class="logo-icon">📐</div>ScanMyPlan</a>
+      <nav>
+        <a href="/#features">Features</a>
+        <a href="/#how-it-works">How It Works</a>
+        <a href="/#demo">Demo</a>
+        <a href="/resources">Resources</a>
+        <a href="/#cta" class="header-cta">Get Started</a>
+      </nav>
     </div>
   </div>
+</header>
 
-  <div id="recentResults" style="margin-bottom:20px;"></div>
-
-  <div class="split-view" id="splitView" style="display:none;">
-    <div class="left-panel" id="leftPanel"></div>
-    <div class="right-panel" id="rightPanel"></div>
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">📐 AI-Powered Floor Plan Analysis</div>
+    <h1>Detect & Count Furniture<span>from Floor Plans in Seconds</span></h1>
+    <p class="subtitle">Upload any floor plan and instantly get a detailed inventory of furniture, fixtures, and equipment — complete with coordinates, room assignments, and export-ready data.</p>
+    <a href="#demo" class="btn-primary">Try It Free →</a>
   </div>
-</div>
+</section>
+
+<!-- Stats -->
+<section class="alt">
+  <div class="container">
+    <div class="stats-bar">
+      <div class="stat"><div class="number">&lt; 2 min</div><div class="label">Processing Time</div></div>
+      <div class="stat"><div class="number">99%+</div><div class="label">Detection Accuracy</div></div>
+      <div class="stat"><div class="number">50+</div><div class="label">Item Categories</div></div>
+      <div class="stat"><div class="number">∞</div><div class="label">Floor Plans</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features">
+  <div class="container">
+    <h2 class="section-title">Powerful Features</h2>
+    <p class="section-subtitle">Everything you need to turn floor plans into actionable data.</p>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="icon">🎯</div><h3>Smart Detection</h3><p>AI identifies chairs, tables, fixtures, equipment, doors, windows, and more with precise bounding boxes and confidence scores.</p></div>
+      <div class="feature-card"><div class="icon">📊</div><h3>Structured Export</h3><p>Download results as JSON or CSV, ready for inventory systems, spreadsheets, or API integration.</p></div>
+      <div class="feature-card"><div class="icon">🏠</div><h3>Room-by-Room</h3><p>Items are automatically grouped by room number with OCR-detected room boundaries for organized reporting.</p></div>
+      <div class="feature-card"><div class="icon">⚡</div><h3>Fast Processing</h3><p>Most floor plans are analyzed in under 2 minutes. Upload and get results before your coffee cools.</p></div>
+      <div class="feature-card"><div class="icon">🔒</div><h3>Secure & Private</h3><p>Your floor plans are processed and never shared. Results are stored with unique permalinks you control.</p></div>
+      <div class="feature-card"><div class="icon">🌐</div><h3>Works Anywhere</h3><p>Browser-based — no software to install. Works on desktop, tablet, and mobile. Upload PNG or JPEG.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section id="how-it-works" class="alt">
+  <div class="container">
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-subtitle">Three simple steps from floor plan to inventory data.</p>
+    <div class="steps">
+      <div class="step"><div class="step-number">1</div><h3>Upload</h3><p>Drag & drop your floor plan image (PNG or JPEG) into the detector.</p></div>
+      <div class="step"><div class="step-number">2</div><h3>AI Analysis</h3><p>Gemini Vision identifies every furniture item, fixture, and architectural element.</p></div>
+      <div class="step"><div class="step-number">3</div><h3>Export & Use</h3><p>Review results, edit if needed, then download as JSON or CSV.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Demo / Detector -->
+<section id="demo">
+  <div class="container">
+    <h2 class="section-title">Try It Now</h2>
+    <p class="section-subtitle">Upload a floor plan and see the AI in action. No account required.</p>
+
+    <div class="top-controls" style="max-width:800px;margin:0 auto;">
+      <div class="upload-area" id="dropzone" onclick="document.getElementById('fileInput').click()">
+        <p>📁 Drag & drop a floor plan PNG here, or click to browse</p>
+        <input type="file" id="fileInput" accept="image/png,image/jpeg" hidden>
+      </div>
+      <div class="fields">
+        <input type="text" id="documentNo" placeholder="DocumentNo (e.g. Q1005)">
+        <input type="text" id="customer" placeholder="Customer (e.g. PH)">
+      </div>
+      <button class="btn-detect" id="detectBtn" disabled>Detect Items</button>
+      <div class="status" id="status"></div>
+      <div class="error" id="error"></div>
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText"></div>
+      </div>
+    </div>
+
+    <div id="recentResults" style="margin:20px auto;max-width:800px;"></div>
+
+    <div class="split-view" id="splitView" style="display:none;">
+      <div class="left-panel" id="leftPanel"></div>
+      <div class="right-panel" id="rightPanel"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Use Cases -->
+<section class="alt">
+  <div class="container">
+    <h2 class="section-title">Use Cases</h2>
+    <p class="section-subtitle">Floor plan intelligence for every industry.</p>
+    <div class="usecase-grid">
+      <a href="/furniture-fixture-detection" class="usecase-card"><div class="icon">🔍</div><h3>Furniture & Fixture Detection</h3><p>Automatically detect and catalog every item in a floor plan with precise coordinates.</p></a>
+      <a href="/auto-quoting-estimation" class="usecase-card"><div class="icon">📝</div><h3>Auto-Quoting & Estimation</h3><p>Generate instant material and labor estimates from floor plans for contractors.</p></a>
+      <a href="/compliance-code-checking" class="usecase-card"><div class="icon">✅</div><h3>Compliance & Code Checking</h3><p>Verify ADA, fire code, and health department requirements automatically.</p></a>
+      <a href="/space-optimization" class="usecase-card"><div class="icon">📐</div><h3>Space Optimization</h3><p>Maximize seating, improve traffic flow, and eliminate dead space with AI suggestions.</p></a>
+      <a href="/insurance-claims" class="usecase-card"><div class="icon">🏠</div><h3>Insurance & Claims</h3><p>Create comprehensive digital documentation for insurance claims and policy reviews.</p></a>
+      <a href="/real-estate-property" class="usecase-card"><div class="icon">🏢</div><h3>Real Estate & Property</h3><p>Auto-generate furniture layouts, measure square footage, and detect room types.</p></a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta" class="cta-section">
+  <div class="container">
+    <h2>Ready to Scan Your Floor Plans?</h2>
+    <p>Upload your first floor plan and see results in under 2 minutes. Free to try.</p>
+    <a href="#demo" class="btn-primary btn-accent">Get Started Free →</a>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand"><a href="/" class="logo"><div class="logo-icon">📐</div>ScanMyPlan</a><p>AI-powered floor plan analysis for furniture detection, inventory management, and compliance.</p></div>
+      <div class="footer-col"><h4>Product</h4><ul><li><a href="/#features">Features</a></li><li><a href="/#demo">Demo</a></li><li><a href="/resources">Resources</a></li></ul></div>
+      <div class="footer-col"><h4>Use Cases</h4><ul><li><a href="/furniture-fixture-detection">Furniture &amp; Fixtures</a></li><li><a href="/auto-quoting-estimation">Auto-Quoting</a></li><li><a href="/compliance-code-checking">Compliance Checking</a></li><li><a href="/space-optimization">Space Optimization</a></li><li><a href="/insurance-claims">Insurance &amp; Claims</a></li><li><a href="/real-estate-property">Real Estate</a></li></ul></div>
+      <div class="footer-col"><h4>Company</h4><ul><li><a href="/resources">Blog</a></li></ul></div>
+    </div>
+    <div class="footer-bottom"><p>&copy; 2026 ScanMyPlan. All rights reserved.</p></div>
+  </div>
+</footer>
+
 <script>
 let selectedFile = null, resultData = null, roomData = [], imgEl = null, canvasEl = null, naturalW = 0, naturalH = 0, imgDataUrl = null;
 
@@ -120,7 +226,6 @@ function setupImage(container) {
     naturalH = imgEl.naturalHeight;
     canvasEl = document.createElement('canvas');
     wrapper.appendChild(canvasEl);
-    // Defer sizing until image has layout
     requestAnimationFrame(() => {
       canvasEl.width = imgEl.clientWidth;
       canvasEl.height = imgEl.clientHeight;
@@ -145,11 +250,9 @@ function highlightItem(idx) {
   const scaleX = dispW / naturalW;
   const scaleY = dispH / naturalH;
 
-  // Highlight the room number label on the floor plan
   const room = roomData.find(r => r.RoomNo === item.RoomNo);
   if (room) {
     const x = room.x * scaleX, y = room.y * scaleY, w = room.width * scaleX, h = room.height * scaleY;
-    // Draw a bright circle/pill around the room number
     const cx = x + w/2, cy = y + h/2;
     const radius = Math.max(w, h) * 0.8;
     ctx.beginPath();
@@ -161,7 +264,6 @@ function highlightItem(idx) {
     ctx.stroke();
   }
 
-  // Highlight active row
   document.querySelectorAll('tr.item-row').forEach((r, i) => r.classList.toggle('active', i === idx));
 }
 function clearHighlight() {
@@ -207,7 +309,6 @@ detectBtn.addEventListener('click', async () => {
         pf.style.width = progressPct + '%';
       }
     }
-    // Always update elapsed time in the message
     const currentStage = [...stages].reverse().find(s => elapsed >= s.t) || stages[0];
     pt.textContent = currentStage.msg + ' (' + Math.round(elapsed) + 's)';
   }, 1000);
@@ -249,22 +350,18 @@ function showResults(items, resultUrl) {
   const splitView = document.getElementById('splitView');
   splitView.style.display = 'flex';
 
-  // Left panel: item list
   let html = '<div class="item-count">' + items.length + ' items detected';
-  if (resultUrl) html += ' — <a href="' + resultUrl + '" target="_blank" style="color:#007bff">📎 Permalink</a>';
+  if (resultUrl) html += ' — <a href="' + resultUrl + '" target="_blank" style="color:var(--primary)">📎 Permalink</a>';
   html += '</div>';
   html += '<div class="download-btns"><button onclick="downloadJSON()">📥 JSON</button><button onclick="downloadCSV()">📥 CSV</button></div>';
-  // Sort items by room number (ascending, natural sort)
   const sorted = items.map((item, origIdx) => ({...item, _origIdx: origIdx}));
   sorted.sort((a, b) => {
     const na = parseInt(a.RoomNo) || 0, nb = parseInt(b.RoomNo) || 0;
     if (na !== nb) return na - nb;
     return a.RoomNo.localeCompare(b.RoomNo);
   });
-  // Re-map sorted indices for highlight
   resultData = sorted;
 
-  // Group by room
   html += '<table><tr><th>ID</th><th>Room</th><th>Item</th><th>Acc</th><th></th></tr>';
   let currentRoom = null;
   for (let i = 0; i < sorted.length; i++) {
@@ -278,16 +375,13 @@ function showResults(items, resultUrl) {
   }
   html += '</table>';
   document.getElementById('leftPanel').innerHTML = html;
-
-  // Right panel: sticky floor plan
   setupImage(document.getElementById('rightPanel'));
 }
-
 
 function editItem(idx) {
   const item = resultData[idx];
   const td = document.querySelector('tr[data-idx="' + idx + '"] .item-name');
-  if (td.querySelector('input')) return; // already editing
+  if (td.querySelector('input')) return;
   const input = document.createElement('input');
   input.value = item.ItemName;
   input.onkeydown = function(e) {
@@ -303,7 +397,6 @@ function editItem(idx) {
 
 function deleteItem(idx) {
   resultData.splice(idx, 1);
-  // Re-render the table
   const items = resultData;
   let html = '<div class="item-count">' + items.length + ' items detected</div>';
   html += '<div class="download-btns"><button onclick="downloadJSON()">📥 JSON</button><button onclick="downloadCSV()">📥 CSV</button></div>';
@@ -336,7 +429,6 @@ function downloadCSV() {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = (document.getElementById('documentNo').value || 'output') + '.csv'; a.click();
 }
-// Load recent results
 async function loadRecent() {
   try {
     const res = await fetch('/api/results');

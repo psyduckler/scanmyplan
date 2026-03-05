@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compliance & Code Checking | ScanMyPlan</title>
+<meta name="description" content="Instantly verify ADA accessibility, fire code, and health department requirements from floor plans.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="stylesheet" href="/styles.css">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4MP227JX2R"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-4MP227JX2R');</script>
+<style>
+.checklist { max-width: 700px; margin: 0 auto; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.checklist-header { background: var(--secondary); color: white; padding: 16px 24px; font-weight: 600; font-size: 16px; }
+.checklist-item { display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.checklist-item:last-child { border-bottom: none; }
+.checklist-item .check { font-size: 18px; }
+.checklist-item.pass .check { color: #38A169; }
+.checklist-item.fail .check { color: #E53E3E; }
+.checklist-item.warn .check { color: var(--accent); }
+.checklist-item .detail { color: var(--text-light); font-size: 13px; margin-left: auto; }
+</style>
+</head>
+<body>
+<header><div class="container"><div class="header-inner"><a href="/" class="logo"><div class="logo-icon">📐</div>ScanMyPlan</a><nav><a href="/#features">Features</a><a href="/#how-it-works">How It Works</a><a href="/#demo">Demo</a><a href="/resources">Resources</a><a href="/#cta" class="header-cta">Get Started</a></nav></div></div></header>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">✅ Compliance Checking</div>
+    <h1>Auto-Check Floor Plans<span>for Code Compliance</span></h1>
+    <p class="subtitle">Instantly verify ADA accessibility, fire code, and health department requirements. Catch compliance issues before construction — not after.</p>
+    <a href="/#demo" class="btn-primary">Try It Now →</a>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2 class="section-title">What We Check</h2>
+    <p class="section-subtitle">Automated compliance verification across three critical areas.</p>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="icon">♿</div><h3>ADA Accessibility</h3><p>Verify doorway widths (min 32"), wheelchair turning radius (60" clear), accessible restroom layouts, ramp grades, and pathway clearances throughout the space.</p></div>
+      <div class="feature-card"><div class="icon">🔥</div><h3>Fire Code</h3><p>Check exit locations and quantities, maximum occupancy per room, egress path widths, fire extinguisher placement zones, and emergency lighting requirements.</p></div>
+      <div class="feature-card"><div class="icon">🏥</div><h3>Health Department</h3><p>Validate handwashing station placement, food prep separation zones, ventilation requirements, sanitation station access, and equipment spacing standards.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="container">
+    <h2 class="section-title">Example Compliance Report</h2>
+    <p class="section-subtitle">Here's what a typical compliance check looks like.</p>
+    <div class="checklist">
+      <div class="checklist-header">Compliance Check — Floor Plan #Q1005</div>
+      <div class="checklist-item pass"><span class="check">✅</span> Main entrance doorway width: 36" <span class="detail">Min: 32" — PASS</span></div>
+      <div class="checklist-item pass"><span class="check">✅</span> Restroom wheelchair turning radius: 62" <span class="detail">Min: 60" — PASS</span></div>
+      <div class="checklist-item fail"><span class="check">❌</span> Room 3 exit path width: 28" <span class="detail">Min: 36" — FAIL</span></div>
+      <div class="checklist-item pass"><span class="check">✅</span> Fire exits: 2 identified (required: 2) <span class="detail">PASS</span></div>
+      <div class="checklist-item warn"><span class="check">⚠️</span> Handwashing station: 1 detected, 2 recommended <span class="detail">REVIEW</span></div>
+      <div class="checklist-item pass"><span class="check">✅</span> Maximum occupancy: 45 (limit: 50) <span class="detail">PASS</span></div>
+      <div class="checklist-item pass"><span class="check">✅</span> Emergency lighting zones: 4 covered <span class="detail">PASS</span></div>
+      <div class="checklist-item fail"><span class="check">❌</span> Room 7 equipment spacing: 24" <span class="detail">Min: 30" — FAIL</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2 class="section-title">Industries</h2>
+    <div class="industry-grid">
+      <div class="industry-card"><div class="icon">🏢</div><span>Commercial Buildings</span></div>
+      <div class="industry-card"><div class="icon">🍽️</div><span>Restaurants</span></div>
+      <div class="industry-card"><div class="icon">🏥</div><span>Healthcare</span></div>
+      <div class="industry-card"><div class="icon">🏨</div><span>Hotels</span></div>
+      <div class="industry-card"><div class="icon">🏫</div><span>Schools</span></div>
+      <div class="industry-card"><div class="icon">🧑‍⚖️</div><span>Architects & Contractors</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="container">
+    <h2 class="section-title">Manual Review vs. ScanMyPlan</h2>
+    <div class="comparison">
+      <div class="comparison-col problem">
+        <h3>❌ Manual Review</h3>
+        <ul>
+          <li>Hire expensive compliance consultants</li>
+          <li>Weeks of back-and-forth with inspectors</li>
+          <li>Issues found during construction</li>
+          <li>Costly rework and delays</li>
+          <li>Subjective interpretations</li>
+          <li>Paper-based checklists</li>
+        </ul>
+      </div>
+      <div class="comparison-col solution">
+        <h3>✅ Automated Checking</h3>
+        <ul>
+          <li>Instant compliance report from floor plan</li>
+          <li>Results in under 2 minutes</li>
+          <li>Catch issues before breaking ground</li>
+          <li>Save thousands in rework costs</li>
+          <li>Objective, code-based standards</li>
+          <li>Digital reports with pass/fail/review</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="container">
+    <h2>Catch Compliance Issues Before They Cost You</h2>
+    <p>Upload a floor plan and get an instant compliance report.</p>
+    <a href="/#demo" class="btn-primary btn-accent">Try It Free →</a>
+  </div>
+</section>
+
+<footer><div class="container"><div class="footer-grid"><div class="footer-brand"><a href="/" class="logo"><div class="logo-icon">📐</div>ScanMyPlan</a><p>AI-powered floor plan analysis for furniture detection, inventory management, and compliance.</p></div><div class="footer-col"><h4>Product</h4><ul><li><a href="/#features">Features</a></li><li><a href="/#demo">Demo</a></li><li><a href="/resources">Resources</a></li></ul></div><div class="footer-col"><h4>Use Cases</h4><ul><li><a href="/furniture-fixture-detection">Furniture &amp; Fixtures</a></li><li><a href="/auto-quoting-estimation">Auto-Quoting</a></li><li><a href="/compliance-code-checking">Compliance Checking</a></li><li><a href="/space-optimization">Space Optimization</a></li><li><a href="/insurance-claims">Insurance &amp; Claims</a></li><li><a href="/real-estate-property">Real Estate</a></li></ul></div><div class="footer-col"><h4>Company</h4><ul><li><a href="/resources">Blog</a></li></ul></div></div><div class="footer-bottom"><p>&copy; 2026 ScanMyPlan. All rights reserved.</p></div></div></footer>
+</body>
+</html>

@@ -78,6 +78,18 @@ function generateId() {
   return crypto.randomBytes(8).toString("hex");
 }
 
+// Use case pages
+const usePages = ['furniture-fixture-detection','auto-quoting-estimation','compliance-code-checking','space-optimization','insurance-claims','real-estate-property'];
+usePages.forEach(p => app.get('/' + p, (req, res) => res.sendFile(path.join(__dirname, 'public', p + '.html'))));
+
+// Resources
+app.get('/resources', (req, res) => res.sendFile(path.join(__dirname, 'public', 'resources', 'index.html')));
+app.get('/resources/:slug', (req, res) => {
+  const file = path.join(__dirname, 'public', 'resources', req.params.slug + '.html');
+  if (fs.existsSync(file)) res.sendFile(file);
+  else res.status(404).send('Not found');
+});
+
 app.use(express.static(path.join(__dirname, "public")));
 
 // Serve saved results
