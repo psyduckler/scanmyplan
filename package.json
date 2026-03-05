@@ -1,0 +1,15 @@
+{
+  "name": "salon-floorplan-detector",
+  "version": "1.0.0",
+  "description": "Detect salon furniture items in floor plan images using Gemini 2.5 Pro vision",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.0",
+    "express": "^4.21.0",
+    "image-size": "^2.0.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}

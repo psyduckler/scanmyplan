@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salon Floorplan Detector</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 20px; }
+  .container { max-width: 1600px; margin: 0 auto; }
+  h1 { text-align: center; margin-bottom: 20px; color: #333; }
+  .upload-area { border: 3px dashed #ccc; border-radius: 12px; padding: 40px; text-align: center; background: #fff;
+    cursor: pointer; transition: border-color 0.3s; margin-bottom: 20px; }
+  .upload-area:hover, .upload-area.dragover { border-color: #007bff; background: #f0f7ff; }
+  .top-controls { margin-bottom: 20px; }
+  .fields { display: flex; gap: 12px; margin-bottom: 12px; }
+  .fields input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+  .btn { padding: 12px 24px; background: #007bff; color: #fff; border: none; border-radius: 6px; cursor: pointer;
+    font-size: 16px; width: 100%; }
+  .btn:disabled { background: #999; cursor: not-allowed; }
+  .btn:hover:not(:disabled) { background: #0056b3; }
+  .status { text-align: center; margin: 10px 0; color: #666; font-style: italic; }
+  .error { color: #d00; text-align: center; margin: 10px 0; }
+  .progress-wrap { margin: 16px 0; display: none; }
+  .progress-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #007bff, #00b4d8); border-radius: 3px; transition: width 0.5s ease; width: 0%; }
+  .progress-text { font-size: 13px; color: #666; margin-top: 6px; text-align: center; }
+
+  /* Side-by-side layout */
+  .split-view { display: flex; gap: 20px; align-items: flex-start; }
+  .left-panel { flex: 0 0 420px; max-height: 85vh; overflow-y: auto; }
+  .right-panel { flex: 1; position: sticky; top: 20px; }
+
+  .download-btns { display: flex; gap: 10px; margin-bottom: 10px; }
+  .download-btns button { padding: 6px 14px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; font-size: 13px; }
+  .download-btns button:hover { background: #f0f0f0; }
+
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; }
+  th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #eee; font-size: 12px; }
+  th { background: #f8f9fa; font-weight: 600; position: sticky; top: 0; z-index: 1; }
+  tr.room-header td { background: #e2e8f0; font-weight: 700; font-size: 13px; color: #334155; padding: 8px; border-bottom: 2px solid #cbd5e1; }
+  tr.item-row { cursor: pointer; transition: background 0.15s; }
+  tr.item-row:hover { background: #e8f4ff; }
+  .icon-btn { background: none; border: none; cursor: pointer; padding: 2px 4px; font-size: 14px; opacity: 0.5; transition: opacity 0.2s; }
+  .icon-btn:hover { opacity: 1; }
+  .actions { white-space: nowrap; width: 60px; }
+  .item-name.editing { background: #fff; }
+  .item-name input { border: 1px solid #007bff; padding: 2px 4px; font-size: 13px; width: 100%; }
+
+  tr.item-row.active { background: #cce5ff; }
+
+  .img-container { position: relative; display: inline-block; }
+  .img-container img { display: block; max-width: 100%; border: 1px solid #ddd; border-radius: 8px; }
+  .img-container canvas { position: absolute; top: 0; left: 0; pointer-events: none; border-radius: 8px; }
+  .recent-card { display:block;padding:12px 16px;background:#fff;border:1px solid #ddd;border-radius:8px;text-decoration:none;color:#333;min-width:200px;transition:box-shadow 0.15s; }
+  .recent-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .item-count { font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🪑 Salon Floorplan Detector</h1>
+
+  <div class="top-controls">
+    <div class="upload-area" id="dropzone" onclick="document.getElementById('fileInput').click()">
+      <p>📁 Drag & drop a floor plan PNG here, or click to browse</p>
+      <input type="file" id="fileInput" accept="image/png,image/jpeg" hidden>
+    </div>
+    <div class="fields">
+      <input type="text" id="documentNo" placeholder="DocumentNo (e.g. Q1005)">
+      <input type="text" id="customer" placeholder="Customer (e.g. PH)">
+    </div>
+    <button class="btn" id="detectBtn" disabled>Detect Items</button>
+    <div class="status" id="status"></div>
+    <div class="error" id="error"></div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText"></div>
+    </div>
+  </div>
+
+  <div id="recentResults" style="margin-bottom:20px;"></div>
+
+  <div class="split-view" id="splitView" style="display:none;">
+    <div class="left-panel" id="leftPanel"></div>
+    <div class="right-panel" id="rightPanel"></div>
+  </div>
+</div>
+<script>
+let selectedFile = null, resultData = null, roomData = [], imgEl = null, canvasEl = null, naturalW = 0, naturalH = 0, imgDataUrl = null;
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const detectBtn = document.getElementById('detectBtn');
+const statusEl = document.getElementById('status');
+const errorEl = document.getElementById('error');
+
+['dragenter','dragover'].forEach(e => dropzone.addEventListener(e, ev => { ev.preventDefault(); dropzone.classList.add('dragover'); }));
+['dragleave','drop'].forEach(e => dropzone.addEventListener(e, ev => { ev.preventDefault(); dropzone.classList.remove('dragover'); }));
+dropzone.addEventListener('drop', ev => { if (ev.dataTransfer.files.length) handleFile(ev.dataTransfer.files[0]); });
+fileInput.addEventListener('change', ev => { if (ev.target.files.length) handleFile(ev.target.files[0]); });
+
+function handleFile(f) {
+  selectedFile = f;
+  dropzone.innerHTML = '<p>✅ ' + f.name + ' (' + (f.size/1024/1024).toFixed(1) + ' MB)</p>';
+  detectBtn.disabled = false;
+  const reader = new FileReader();
+  reader.onload = e => { imgDataUrl = e.target.result; };
+  reader.readAsDataURL(f);
+}
+
+function setupImage(container) {
+  container.innerHTML = '';
+  const wrapper = document.createElement('div');
+  wrapper.className = 'img-container';
+  imgEl = document.createElement('img');
+  imgEl.src = imgDataUrl;
+  imgEl.onload = () => {
+    naturalW = imgEl.naturalWidth;
+    naturalH = imgEl.naturalHeight;
+    canvasEl = document.createElement('canvas');
+    wrapper.appendChild(canvasEl);
+    // Defer sizing until image has layout
+    requestAnimationFrame(() => {
+      canvasEl.width = imgEl.clientWidth;
+      canvasEl.height = imgEl.clientHeight;
+    });
+  };
+  wrapper.appendChild(imgEl);
+  container.appendChild(wrapper);
+}
+
+function highlightItem(idx) {
+  if (!canvasEl || !resultData || !imgEl) return;
+  const dispW = imgEl.clientWidth;
+  const dispH = imgEl.clientHeight;
+  if (dispW === 0 || dispH === 0) return;
+  canvasEl.width = dispW;
+  canvasEl.height = dispH;
+  const ctx = canvasEl.getContext('2d');
+  ctx.clearRect(0, 0, dispW, dispH);
+  if (idx < 0 || idx >= resultData.length) return;
+
+  const item = resultData[idx];
+  const scaleX = dispW / naturalW;
+  const scaleY = dispH / naturalH;
+
+  // Highlight the room number label on the floor plan
+  const room = roomData.find(r => r.RoomNo === item.RoomNo);
+  if (room) {
+    const x = room.x * scaleX, y = room.y * scaleY, w = room.width * scaleX, h = room.height * scaleY;
+    // Draw a bright circle/pill around the room number
+    const cx = x + w/2, cy = y + h/2;
+    const radius = Math.max(w, h) * 0.8;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 60, 60, 0.3)';
+    ctx.fill();
+    ctx.strokeStyle = '#ff3c3c';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  // Highlight active row
+  document.querySelectorAll('tr.item-row').forEach((r, i) => r.classList.toggle('active', i === idx));
+}
+function clearHighlight() {
+  if (canvasEl) { const ctx = canvasEl.getContext('2d'); ctx.clearRect(0, 0, canvasEl.width, canvasEl.height); }
+  document.querySelectorAll('tr.item-row.active').forEach(r => r.classList.remove('active'));
+}
+
+detectBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  detectBtn.disabled = true;
+  statusEl.textContent = 'Uploading and analyzing... (this may take 1-3 minutes)';
+  errorEl.textContent = '';
+  document.getElementById('splitView').style.display = 'none';
+
+  const formData = new FormData();
+  formData.append('image', selectedFile);
+  formData.append('documentNo', document.getElementById('documentNo').value);
+  formData.append('customer', document.getElementById('customer').value);
+
+  const pw = document.getElementById('progressWrap');
+  const pf = document.getElementById('progressFill');
+  const pt = document.getElementById('progressText');
+  pw.style.display = 'block';
+  pf.style.width = '5%';
+  const startTime = Date.now();
+  let progressPct = 5;
+  const stages = [
+    {pct: 10, t: 2, msg: 'Uploading image...'},
+    {pct: 20, t: 5, msg: 'Image received, starting analysis...'},
+    {pct: 35, t: 15, msg: 'Gemini is analyzing the floor plan...'},
+    {pct: 50, t: 30, msg: 'Identifying furniture items...'},
+    {pct: 65, t: 60, msg: 'Mapping item locations...'},
+    {pct: 75, t: 90, msg: 'Almost there — finalizing results...'},
+    {pct: 82, t: 120, msg: 'Still working — large floor plan...'},
+    {pct: 88, t: 180, msg: 'Detecting room boundaries...'},
+    {pct: 92, t: 240, msg: 'Wrapping up — almost done...'},
+  ];
+  const progressTimer = setInterval(() => {
+    const elapsed = (Date.now() - startTime) / 1000;
+    for (const s of stages) {
+      if (elapsed >= s.t && progressPct < s.pct) {
+        progressPct = s.pct;
+        pf.style.width = progressPct + '%';
+      }
+    }
+    // Always update elapsed time in the message
+    const currentStage = [...stages].reverse().find(s => elapsed >= s.t) || stages[0];
+    pt.textContent = currentStage.msg + ' (' + Math.round(elapsed) + 's)';
+  }, 1000);
+
+  try {
+    const response = await fetch('/api/detect', { method: 'POST', body: formData });
+    const fullText = await response.text();
+    clearInterval(progressTimer);
+    const events = fullText.split('\n\n');
+    for (const evt of events) {
+      const lines = evt.trim().split('\n');
+      let etype = '', edata = '';
+      for (const ln of lines) {
+        if (ln.startsWith('event: ')) etype = ln.slice(7);
+        else if (ln.startsWith('data: ')) edata = ln.slice(6);
+      }
+      if (!edata) continue;
+      try {
+        const d = JSON.parse(edata);
+        if (etype === 'status') { pt.textContent = d.status; }
+        else if (etype === 'result') {
+          pf.style.width = '100%';
+          pt.textContent = 'Done! ' + d.items.length + ' items detected (' + Math.round((Date.now() - startTime) / 1000) + 's)';
+          statusEl.textContent = '';
+          setTimeout(() => { pw.style.display = 'none'; }, 3000);
+          roomsData = d.rooms || [];
+          roomData = d.rooms || [];
+          showResults(d.items, d.resultUrl);
+        }
+        else if (etype === 'error') { statusEl.textContent = ''; errorEl.textContent = 'Error: ' + d.error; pw.style.display = 'none'; }
+      } catch(e) { console.error('Parse error:', e); }
+    }
+  } catch (err) { clearInterval(progressTimer); errorEl.textContent = 'Error: ' + err.message; statusEl.textContent = ''; pw.style.display = 'none'; }
+  detectBtn.disabled = false;
+});
+
+function showResults(items, resultUrl) {
+  resultData = items;
+  const splitView = document.getElementById('splitView');
+  splitView.style.display = 'flex';
+
+  // Left panel: item list
+  let html = '<div class="item-count">' + items.length + ' items detected';
+  if (resultUrl) html += ' — <a href="' + resultUrl + '" target="_blank" style="color:#007bff">📎 Permalink</a>';
+  html += '</div>';
+  html += '<div class="download-btns"><button onclick="downloadJSON()">📥 JSON</button><button onclick="downloadCSV()">📥 CSV</button></div>';
+  // Sort items by room number (ascending, natural sort)
+  const sorted = items.map((item, origIdx) => ({...item, _origIdx: origIdx}));
+  sorted.sort((a, b) => {
+    const na = parseInt(a.RoomNo) || 0, nb = parseInt(b.RoomNo) || 0;
+    if (na !== nb) return na - nb;
+    return a.RoomNo.localeCompare(b.RoomNo);
+  });
+  // Re-map sorted indices for highlight
+  resultData = sorted;
+
+  // Group by room
+  html += '<table><tr><th>ID</th><th>Room</th><th>Item</th><th>Acc</th><th></th></tr>';
+  let currentRoom = null;
+  for (let i = 0; i < sorted.length; i++) {
+    const item = sorted[i];
+    if (item.RoomNo !== currentRoom) {
+      currentRoom = item.RoomNo;
+      const roomCount = sorted.filter(x => x.RoomNo === currentRoom).length;
+      html += '<tr class="room-header"><td colspan="5">Room ' + currentRoom + ' — ' + roomCount + ' item' + (roomCount !== 1 ? 's' : '') + '</td></tr>';
+    }
+    html += '<tr class="item-row" data-idx="' + i + '" onmouseenter="highlightItem(' + i + ')" onmouseleave="clearHighlight()"><td>' + item.ID + '</td><td>' + item.RoomNo + '</td><td class="item-name">' + item.ItemName + '</td><td>' + item.Accuracy + '</td><td class="actions"><button class="icon-btn" onclick="editItem(' + i + ')" title="Edit">✏️</button><button class="icon-btn" onclick="deleteItem(' + i + ')" title="Delete">🗑️</button></td></tr>';
+  }
+  html += '</table>';
+  document.getElementById('leftPanel').innerHTML = html;
+
+  // Right panel: sticky floor plan
+  setupImage(document.getElementById('rightPanel'));
+}
+
+
+function editItem(idx) {
+  const item = resultData[idx];
+  const td = document.querySelector('tr[data-idx="' + idx + '"] .item-name');
+  if (td.querySelector('input')) return; // already editing
+  const input = document.createElement('input');
+  input.value = item.ItemName;
+  input.onkeydown = function(e) {
+    if (e.key === 'Enter') { item.ItemName = input.value; td.textContent = input.value; }
+    if (e.key === 'Escape') { td.textContent = item.ItemName; }
+  };
+  input.onblur = function() { item.ItemName = input.value; td.textContent = input.value; };
+  td.textContent = '';
+  td.appendChild(input);
+  input.focus();
+  input.select();
+}
+
+function deleteItem(idx) {
+  resultData.splice(idx, 1);
+  // Re-render the table
+  const items = resultData;
+  let html = '<div class="item-count">' + items.length + ' items detected</div>';
+  html += '<div class="download-btns"><button onclick="downloadJSON()">📥 JSON</button><button onclick="downloadCSV()">📥 CSV</button></div>';
+  html += '<table><tr><th>ID</th><th>Room</th><th>Item</th><th>Acc</th><th></th></tr>';
+  let currentRoom = null;
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (item.RoomNo !== currentRoom) {
+      currentRoom = item.RoomNo;
+      const roomCount = items.filter(x => x.RoomNo === currentRoom).length;
+      html += '<tr class="room-header"><td colspan="5">Room ' + currentRoom + ' — ' + roomCount + ' item' + (roomCount !== 1 ? 's' : '') + '</td></tr>';
+    }
+    html += '<tr class="item-row" data-idx="' + i + '" onmouseenter="highlightItem(' + i + ')" onmouseleave="clearHighlight()"><td>' + item.ID + '</td><td>' + item.RoomNo + '</td><td class="item-name">' + item.ItemName + '</td><td>' + item.Accuracy + '</td><td class="actions"><button class="icon-btn" onclick="editItem(' + i + ')" title="Edit">✏️</button><button class="icon-btn" onclick="deleteItem(' + i + ')" title="Delete">🗑️</button></td></tr>';
+  }
+  html += '</table>';
+  document.getElementById('leftPanel').innerHTML = html;
+}
+
+function downloadJSON() {
+  if (!resultData) return;
+  const blob = new Blob([JSON.stringify(resultData, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = (document.getElementById('documentNo').value || 'output') + '.json'; a.click();
+}
+function downloadCSV() {
+  if (!resultData) return;
+  const headers = Object.keys(resultData[0]).join(',');
+  const rows = resultData.map(r => Object.values(r).map(v => '"' + v + '"').join(','));
+  const blob = new Blob([headers + '\n' + rows.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = (document.getElementById('documentNo').value || 'output') + '.csv'; a.click();
+}
+// Load recent results
+async function loadRecent() {
+  try {
+    const res = await fetch('/api/results');
+    const results = await res.json();
+    if (!results.length) return;
+    let h = '<h3 style="margin-bottom:10px;color:#333;">Recent Analyses</h3>';
+    h += '<div style="display:flex;flex-wrap:wrap;gap:10px;">';
+    for (const r of results) {
+      h += '<a href="/results/' + r.id + '" class="recent-card">'
+        + '<div style="font-weight:600;font-size:14px;">' + (r.documentNo || r.imageFile) + '</div>'
+        + '<div style="font-size:12px;color:#666;">' + r.itemCount + ' items' + (r.customer ? ' \u2022 ' + r.customer : '') + '</div>'
+        + '<div style="font-size:11px;color:#999;">' + new Date(r.createdAt).toLocaleString() + '</div>'
+        + '</a>';
+    }
+    h += '</div>';
+    document.getElementById('recentResults').innerHTML = h;
+  } catch {}
+}
+loadRecent();
+</script>
+</body>
+</html>

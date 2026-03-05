@@ -1,0 +1,90 @@
+[
+  {
+    "DocumentNo": "Q1005",
+    "Customer": "PH",
+    "DrawingFile": "quote-1005-cropped.png",
+    "ID": 1,
+    "RoomNo": "176",
+    "RoomName": "",
+    "ItemName": "Shampoo Chair",
+    "Coordinates": "{\"x\":12242,\"y\":3703,\"width\":390,\"height\":238}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1005",
+    "Customer": "PH",
+    "DrawingFile": "quote-1005-cropped.png",
+    "ID": 2,
+    "RoomNo": "HW1",
+    "RoomName": "",
+    "ItemName": "Hallway Bench",
+    "Coordinates": "{\"x\":5335,\"y\":5378,\"width\":543,\"height\":176}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1005",
+    "Customer": "PH",
+    "DrawingFile": "quote-1005-cropped.png",
+    "ID": 3,
+    "RoomNo": "HW1",
+    "RoomName": "",
+    "ItemName": "Hallway Bench",
+    "Coordinates": "{\"x\":7634,\"y\":5386,\"width\":546,\"height\":163}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1005",
+    "Customer": "PH",
+    "DrawingFile": "quote-1005-cropped.png",
+    "ID": 4,
+    "RoomNo": "HW1",
+    "RoomName": "",
+    "ItemName": "Hallway Bench",
+    "Coordinates": "{\"x\":11455,\"y\":5380,\"width\":535,\"height\":173}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1005",
+    "Customer": "PH",
+    "DrawingFile": "quote-1005-cropped.png",
+    "ID": 5,
+    "RoomNo": "HW2",
+    "RoomName": "",
+    "ItemName": "Hallway Bench",
+    "Coordinates": "{\"x\":10498,\"y\":2627,\"width\":544,\"height\":164}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1005",
+    "Customer": "PH",
+    "DrawingFile": "quote-1005-cropped.png",
+    "ID": 6,
+    "RoomNo": "HW2",
+    "RoomName": "",
+    "ItemName": "Hallway Bench",
+    "Coordinates": "{\"x\":7612,\"y\":2627,\"width\":542,\"height\":162}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1005",
+    "Customer": "PH",
+    "DrawingFile": "quote-1005-cropped.png",
+    "ID": 7,
+    "RoomNo": "HW2",
+    "RoomName": "",
+    "ItemName": "Hallway Bench",
+    "Coordinates": "{\"x\":4730,\"y\":2627,\"width\":539,\"height\":157}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1005",
+    "Customer": "PH",
+    "DrawingFile": "quote-1005-cropped.png",
+    "ID": 8,
+    "RoomNo": "161",
+    "RoomName": "",
+    "ItemName": "Shampoo Cabinet",
+    "Coordinates": "{\"x\":806,\"y\":7131,\"width\":408,\"height\":306}",
+    "Accuracy": 100
+  }
+]

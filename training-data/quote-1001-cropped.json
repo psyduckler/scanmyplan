@@ -1,0 +1,123 @@
+[
+  {
+    "DocumentNo": "Q1001",
+    "Customer": "IS",
+    "DrawingFile": "quote-1001-cropped.png",
+    "ID": 1,
+    "RoomNo": "1",
+    "RoomName": "",
+    "ItemName": "Styling Chair",
+    "Coordinates": "{\"x\":734,\"y\":504,\"width\":455,\"height\":312}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1001",
+    "Customer": "IS",
+    "DrawingFile": "quote-1001-cropped.png",
+    "ID": 2,
+    "RoomNo": "1",
+    "RoomName": "",
+    "ItemName": "Back to Back Station",
+    "Coordinates": "{\"x\":1231,\"y\":393,\"width\":278,\"height\":521}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1001",
+    "Customer": "IS",
+    "DrawingFile": "quote-1001-cropped.png",
+    "ID": 3,
+    "RoomNo": "1",
+    "RoomName": "",
+    "ItemName": "Shampoo Shuttle",
+    "Coordinates": "{\"x\":1241,\"y\":1820,\"width\":736,\"height\":434}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1001",
+    "Customer": "IS",
+    "DrawingFile": "quote-1001-cropped.png",
+    "ID": 4,
+    "RoomNo": "1",
+    "RoomName": "",
+    "ItemName": "Styling Chair",
+    "Coordinates": "{\"x\":1234,\"y\":3027,\"width\":462,\"height\":330}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1001",
+    "Customer": "IS",
+    "DrawingFile": "quote-1001-cropped.png",
+    "ID": 5,
+    "RoomNo": "1",
+    "RoomName": "",
+    "ItemName": "Mirror",
+    "Coordinates": "{\"x\":1880,\"y\":2941,\"width\":83,\"height\":489}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1001",
+    "Customer": "IS",
+    "DrawingFile": "quote-1001-cropped.png",
+    "ID": 6,
+    "RoomNo": "1",
+    "RoomName": "",
+    "ItemName": "Rolling Cart",
+    "Coordinates": "{\"x\":1717,\"y\":3288,\"width\":229,\"height\":305}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1001",
+    "Customer": "IS",
+    "DrawingFile": "quote-1001-cropped.png",
+    "ID": 7,
+    "RoomNo": "1",
+    "RoomName": "",
+    "ItemName": "47in Cabinet - LEFT ",
+    "Coordinates": "{\"x\":1678,\"y\":6171,\"width\":246,\"height\":645}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1001",
+    "Customer": "IS",
+    "DrawingFile": "quote-1001-cropped.png",
+    "ID": 8,
+    "RoomNo": "1",
+    "RoomName": "",
+    "ItemName": "47in Cabinet - RIGHT",
+    "Coordinates": "{\"x\":1668,\"y\":7063,\"width\":274,\"height\":652}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1001",
+    "Customer": "IS",
+    "DrawingFile": "quote-1001-cropped.png",
+    "ID": 9,
+    "RoomNo": "1",
+    "RoomName": "",
+    "ItemName": "63in Cabinet - LEFT ",
+    "Coordinates": "{\"x\":1668,\"y\":8368,\"width\":260,\"height\":854}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1001",
+    "Customer": "IS",
+    "DrawingFile": "quote-1001-cropped.png",
+    "ID": 10,
+    "RoomNo": "1",
+    "RoomName": "",
+    "ItemName": "63in Cabinet - RIGHT",
+    "Coordinates": "{\"x\":1654,\"y\":9350,\"width\":274,\"height\":826}",
+    "Accuracy": 100
+  },
+  {
+    "DocumentNo": "Q1001",
+    "Customer": "IS",
+    "DrawingFile": "quote-1001-cropped.png",
+    "ID": 11,
+    "RoomNo": "1",
+    "RoomName": "",
+    "ItemName": "47in Cabinet - No Si",
+    "Coordinates": "{\"x\":2166,\"y\":6165,\"width\":254,\"height\":667}",
+    "Accuracy": 100
+  }
+]
