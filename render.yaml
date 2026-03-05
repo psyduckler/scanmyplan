@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: scanmyplan
+    runtime: docker
+    plan: starter
+    region: oregon
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PORT
+        value: "10000"
+      - key: DATA_DIR
+        value: /data
+    disk:
+      name: scanmyplan-data
+      mountPath: /data
+      sizeGB: 1

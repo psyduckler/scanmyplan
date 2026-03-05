@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 const { imageSize } = require("image-size");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { execSync } = require("child_process");
@@ -13,6 +14,9 @@ if (!apiKey) {
     console.log("Loaded API key from macOS Keychain");
   } catch { console.error("No GEMINI_API_KEY found"); process.exit(1); }
 }
+
+let DATA_DIR = process.env.DATA_DIR || __dirname;
+try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch { DATA_DIR = __dirname; }
 
 const genAI = new GoogleGenerativeAI(apiKey);
 const app = express();
@@ -67,14 +71,12 @@ try {
   }
 } catch (e) { console.error("Failed to load Q1002:", e.message); }
 
-const RESULTS_DIR = path.join(__dirname, "results");
-if (!fs.existsSync(RESULTS_DIR)) fs.mkdirSync(RESULTS_DIR);
+const RESULTS_DIR = path.join(DATA_DIR, "results");
+if (!fs.existsSync(RESULTS_DIR)) fs.mkdirSync(RESULTS_DIR, { recursive: true });
 
-let nextId = 1;
-try {
-  const existing = fs.readdirSync(RESULTS_DIR).filter(d => /^\d+$/.test(d)).map(Number);
-  if (existing.length) nextId = Math.max(...existing) + 1;
-} catch {}
+function generateId() {
+  return crypto.randomBytes(8).toString("hex");
+}
 
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -98,13 +100,16 @@ app.get("/api/results/:id/image", (req, res) => {
 // List all saved results
 app.get("/api/results", (req, res) => {
   try {
-    const dirs = fs.readdirSync(RESULTS_DIR).filter(d => /^\d+$/.test(d)).map(Number).sort((a,b) => b - a);
+    const dirs = fs.readdirSync(RESULTS_DIR).filter(d => {
+      try { return fs.statSync(path.join(RESULTS_DIR, d)).isDirectory(); } catch { return false; }
+    });
     const results = dirs.map(id => {
       try {
-        const meta = JSON.parse(fs.readFileSync(path.join(RESULTS_DIR, String(id), "meta.json"), "utf8"));
+        const meta = JSON.parse(fs.readFileSync(path.join(RESULTS_DIR, id, "meta.json"), "utf8"));
         return { id, imageFile: meta.imageFile, documentNo: meta.documentNo, customer: meta.customer, itemCount: meta.items.length, createdAt: meta.createdAt };
       } catch { return null; }
     }).filter(Boolean);
+    results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json(results);
   } catch { res.json([]); }
 });
@@ -209,25 +214,25 @@ The box_2d values MUST be integers from 0 to 1000 representing normalized coordi
       };
     });
 
-    // Detect room boundaries using OCR (Tesseract)
+    // Detect room boundaries using OCR (Tesseract) — optional, graceful fallback
     let rooms = [];
     try {
       res.write('event: status\ndata: ' + JSON.stringify({status:'Detecting room boundaries via OCR...'}) + '\n\n');
-      const tmpImg = path.join(RESULTS_DIR, '_tmp_ocr.png');
+      const tmpImg = path.join(RESULTS_DIR, '_tmp_ocr_' + Date.now() + '.png');
       fs.writeFileSync(tmpImg, req.file.buffer);
-      const roomJson = execSync('python3 detect_rooms.py "' + tmpImg + '"', { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, cwd: __dirname });
+      const roomJson = execSync('python3 detect_rooms.py "' + tmpImg + '"', { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, cwd: __dirname, timeout: 60000 });
       rooms = JSON.parse(roomJson.trim());
       console.log('Detected ' + rooms.length + ' rooms via OCR');
       try { fs.unlinkSync(tmpImg); } catch {}
     } catch (e) {
-      console.error('OCR room detection failed:', e.message);
+      console.warn('OCR room detection skipped:', e.message);
     }
 
     const finalItems = items;
 
     // Save result for permalink
-    const resultId = nextId++;
-    const resultDir = path.join(RESULTS_DIR, String(resultId));
+    const resultId = generateId();
+    const resultDir = path.join(RESULTS_DIR, resultId);
     fs.mkdirSync(resultDir, { recursive: true });
     fs.writeFileSync(path.join(resultDir, filename), req.file.buffer);
     fs.writeFileSync(path.join(resultDir, "meta.json"), JSON.stringify({

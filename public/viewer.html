@@ -113,7 +113,7 @@ function highlightItem(idx) {
   ctx.clearRect(0, 0, dispW, dispH);
   if (idx < 0 || idx >= resultData.length) return;
   const item = resultData[idx];
-  const room = roomsData.find(r => r.RoomNo === item.RoomNo);
+  const room = roomData.find(r => r.RoomNo === item.RoomNo);
   if (room) {
     const sx = dispW / naturalW, sy = dispH / naturalH;
     const x = room.x * sx, y = room.y * sy, w = room.width * sx, h = room.height * sy;
