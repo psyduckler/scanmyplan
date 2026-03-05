@@ -320,9 +320,40 @@ function downloadCSV() {
   a.download = 'plan-' + planId + '.csv'; a.click();
 }
 
-// Kick off
-loadMeta();
-startDetection();
+// Kick off — check if results already exist before re-running detection
+async function init() {
+  try {
+    const res = await fetch('/api/results/' + planId);
+    if (res.ok) {
+      const meta = await res.json();
+      if (meta.items && meta.items.length > 0) {
+        // Results already exist — show them directly, no re-detection
+        clearInterval(progressTimer);
+        naturalW = meta.imageDims.width;
+        naturalH = meta.imageDims.height;
+        roomData = meta.rooms || [];
+
+        // Update meta bar
+        const metaEl = document.getElementById('planMeta');
+        let info = '';
+        if (meta.documentNo) info += 'Doc: ' + meta.documentNo;
+        if (meta.customer) info += (info ? ' · ' : '') + 'Customer: ' + meta.customer;
+        info += (info ? ' · ' : '') + meta.imageFile;
+        metaEl.innerHTML = '<a href="/" class="back-link">← New Scan</a><span class="plan-id">' + planId + '</span><span class="plan-info">' + info + '</span>';
+
+        // Hide progress, show results
+        document.getElementById('progressArea').style.display = 'none';
+        showResults(meta.items);
+        return;
+      }
+    }
+  } catch {}
+
+  // No cached results — run detection
+  loadMeta();
+  startDetection();
+}
+init();
 </script>
 </body>
 </html>
