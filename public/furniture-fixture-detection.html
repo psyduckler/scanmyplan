@@ -68,8 +68,7 @@
         <input type="file" id="fileInput" accept="image/png,image/jpeg" hidden>
       </div>
       <div class="fields">
-        <input type="text" id="documentNo" placeholder="DocumentNo (e.g. Q1005)">
-        <input type="text" id="customer" placeholder="Customer (e.g. PH)">
+        <input type="email" id="emailField" placeholder="Enter your email to get started" required>
       </div>
       <button class="btn-detect" id="detectBtn" disabled>Detect Items</button>
       <div class="status" id="status"></div>
@@ -196,11 +195,18 @@ const errorEl = document.getElementById('error');
 ['dragleave','drop'].forEach(e => dropzone.addEventListener(e, ev => { ev.preventDefault(); dropzone.classList.remove('dragover'); }));
 dropzone.addEventListener('drop', ev => { if (ev.dataTransfer.files.length) handleFile(ev.dataTransfer.files[0]); });
 fileInput.addEventListener('change', ev => { if (ev.target.files.length) handleFile(ev.target.files[0]); });
+document.getElementById('emailField').addEventListener('input', checkReady);
+
+function checkReady() {
+  const email = document.getElementById('emailField').value.trim();
+  const valid = selectedFile && email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  detectBtn.disabled = !valid;
+}
 
 function handleFile(f) {
   selectedFile = f;
   dropzone.innerHTML = '<p>✅ ' + f.name + ' (' + (f.size/1024/1024).toFixed(1) + ' MB)</p>';
-  detectBtn.disabled = false;
+  checkReady();
   const reader = new FileReader();
   reader.onload = e => { imgDataUrl = e.target.result; };
   reader.readAsDataURL(f);
@@ -215,8 +221,7 @@ detectBtn.addEventListener('click', async () => {
 
   const formData = new FormData();
   formData.append('image', selectedFile);
-  formData.append('documentNo', document.getElementById('documentNo').value);
-  formData.append('customer', document.getElementById('customer').value);
+  formData.append('email', document.getElementById('emailField').value);
 
   try {
     const res = await fetch('/api/upload', { method: 'POST', body: formData });
