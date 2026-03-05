@@ -49,7 +49,18 @@ footer { background: var(--secondary); padding: 48px 0 24px; color: white; }
 .footer-bottom p { font-size: 13px; color: rgba(255,255,255,0.4); }
 
 /* Hero */
-.hero { background: linear-gradient(180deg, var(--bg-light) 0%, var(--bg) 100%); padding: 80px 0 60px; text-align: center; }
+.hero {
+  padding: 80px 0 60px; text-align: center; position: relative; overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(232,244,251,0.92) 0%, rgba(255,255,255,0.97) 100%),
+    /* fine grid */
+    repeating-linear-gradient(0deg, transparent, transparent 19px, rgba(6,150,215,0.08) 19px, rgba(6,150,215,0.08) 20px),
+    repeating-linear-gradient(90deg, transparent, transparent 19px, rgba(6,150,215,0.08) 19px, rgba(6,150,215,0.08) 20px),
+    /* major grid every 100px */
+    repeating-linear-gradient(0deg, transparent, transparent 99px, rgba(6,150,215,0.15) 99px, rgba(6,150,215,0.15) 100px),
+    repeating-linear-gradient(90deg, transparent, transparent 99px, rgba(6,150,215,0.15) 99px, rgba(6,150,215,0.15) 100px);
+  background-color: #E8F4FB;
+}
 .hero-badge { display: inline-block; background: var(--primary-light); color: var(--primary-dark); padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 600; margin-bottom: 20px; }
 .hero h1 { font-size: 48px; font-weight: 800; line-height: 1.15; color: var(--secondary); margin-bottom: 20px; }
 .hero h1 span { display: block; color: var(--primary); }
