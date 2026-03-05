@@ -84,7 +84,7 @@
     </div>
 
     <!-- Loading / Progress state -->
-    <div id="progressArea" class="plan-progress">
+    <div id="progressArea" class="plan-progress" style="display:none;">
       <h2>Analyzing your floor plan…</h2>
       <p class="plan-progress-sub">AI is detecting items, rooms, and layouts. This usually takes 1–3 minutes.</p>
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
@@ -117,32 +117,35 @@
 const planId = window.location.pathname.split('/').pop();
 let resultData = null, roomData = [], imgEl = null, canvasEl = null, naturalW = 0, naturalH = 0;
 
-// Progress animation
+// Progress animation — only started when detection is needed
 const pf = document.getElementById('progressFill');
 const pt = document.getElementById('progressText');
-const startTime = Date.now();
-let progressPct = 5;
-pf.style.width = '5%';
+let startTime, progressPct, progressTimer;
 
-const stages = [
-  {pct: 10, t: 2, msg: 'Connecting to analysis engine…'},
-  {pct: 20, t: 5, msg: 'Image received, starting analysis…'},
-  {pct: 35, t: 15, msg: 'AI is analyzing the floor plan…'},
-  {pct: 50, t: 30, msg: 'Identifying furniture items…'},
-  {pct: 65, t: 60, msg: 'Mapping item locations…'},
-  {pct: 75, t: 90, msg: 'Almost there — finalizing results…'},
-  {pct: 82, t: 120, msg: 'Still working — large floor plan…'},
-  {pct: 88, t: 180, msg: 'Detecting room boundaries…'},
-  {pct: 92, t: 240, msg: 'Wrapping up — almost done…'},
-];
-const progressTimer = setInterval(() => {
-  const elapsed = (Date.now() - startTime) / 1000;
-  for (const s of stages) {
-    if (elapsed >= s.t && progressPct < s.pct) { progressPct = s.pct; pf.style.width = progressPct + '%'; }
-  }
-  const currentStage = [...stages].reverse().find(s => elapsed >= s.t) || stages[0];
-  pt.textContent = currentStage.msg + ' (' + Math.round(elapsed) + 's)';
-}, 1000);
+function startProgress() {
+  startTime = Date.now();
+  progressPct = 5;
+  pf.style.width = '5%';
+  const stages = [
+    {pct: 10, t: 2, msg: 'Connecting to analysis engine…'},
+    {pct: 20, t: 5, msg: 'Image received, starting analysis…'},
+    {pct: 35, t: 15, msg: 'AI is analyzing the floor plan…'},
+    {pct: 50, t: 30, msg: 'Identifying furniture items…'},
+    {pct: 65, t: 60, msg: 'Mapping item locations…'},
+    {pct: 75, t: 90, msg: 'Almost there — finalizing results…'},
+    {pct: 82, t: 120, msg: 'Still working — large floor plan…'},
+    {pct: 88, t: 180, msg: 'Detecting room boundaries…'},
+    {pct: 92, t: 240, msg: 'Wrapping up — almost done…'},
+  ];
+  progressTimer = setInterval(() => {
+    const elapsed = (Date.now() - startTime) / 1000;
+    for (const s of stages) {
+      if (elapsed >= s.t && progressPct < s.pct) { progressPct = s.pct; pf.style.width = progressPct + '%'; }
+    }
+    const currentStage = [...stages].reverse().find(s => elapsed >= s.t) || stages[0];
+    pt.textContent = currentStage.msg + ' (' + Math.round(elapsed) + 's)';
+  }, 1000);
+}
 
 // Show thumbnail preview + meta info
 async function loadMeta() {
@@ -168,6 +171,8 @@ async function loadMeta() {
 
 // Start detection via SSE
 async function startDetection() {
+  document.getElementById('progressArea').style.display = 'block';
+  startProgress();
   try {
     const response = await fetch('/api/detect/' + planId);
     if (!response.ok) {
