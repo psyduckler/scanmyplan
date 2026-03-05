@@ -101,7 +101,7 @@ app.get("/plan/:id", (req, res) => {
 app.post("/api/upload", upload.single("image"), (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No image uploaded" });
-    const { documentNo, customer } = req.body;
+    const { documentNo, customer, email } = req.body;
     const filename = req.file.originalname;
     const dims = imageSize(req.file.buffer);
     const planId = generateId();
@@ -109,10 +109,16 @@ app.post("/api/upload", upload.single("image"), (req, res) => {
     fs.mkdirSync(planDir, { recursive: true });
     fs.writeFileSync(path.join(planDir, filename), req.file.buffer);
     fs.writeFileSync(path.join(planDir, "meta.json"), JSON.stringify({
-      id: planId, imageFile: filename, documentNo: documentNo || "", customer: customer || "",
+      id: planId, imageFile: filename, documentNo: documentNo || "", customer: customer || "", email: email || "",
       imageDims: { width: dims.width, height: dims.height }, rooms: [], items: [], status: "pending",
       createdAt: new Date().toISOString()
     }, null, 2));
+    // Append email to leads log
+    if (email) {
+      const leadsPath = path.join(RESULTS_DIR, "leads.csv");
+      if (!fs.existsSync(leadsPath)) fs.writeFileSync(leadsPath, "timestamp,email,planId,filename\n");
+      fs.appendFileSync(leadsPath, `${new Date().toISOString()},${email},${planId},${filename}\n`);
+    }
     console.log(`Uploaded ${filename} → /plan/${planId}`);
     res.json({ planId });
   } catch (err) {
@@ -298,7 +304,13 @@ app.post("/api/detect", upload.single("image"), async (req, res) => {
 
   try {
     if (!req.file) { clearInterval(keepalive); res.write('event: error\ndata: {"error":"No image uploaded"}\n\n'); res.end(); return; }
-    const { documentNo, customer } = req.body;
+    const { documentNo, customer, email } = req.body;
+    // Log email lead
+    if (email) {
+      const leadsPath = path.join(RESULTS_DIR, "leads.csv");
+      if (!fs.existsSync(leadsPath)) fs.writeFileSync(leadsPath, "timestamp,email,planId,filename\n");
+      fs.appendFileSync(leadsPath, `${new Date().toISOString()},${email},,${req.file.originalname}\n`);
+    }
     const filename = req.file.originalname;
     const dims = imageSize(req.file.buffer);
     console.log(`Processing ${filename}: ${dims.width}x${dims.height}`);
@@ -416,6 +428,19 @@ The box_2d values MUST be integers from 0 to 1000 representing normalized coordi
     res.write(`event: error\ndata: ${JSON.stringify({error: err.message || "Detection failed"})}\n\n`);
     res.end();
   }
+});
+
+// Leads endpoint (protected with simple key)
+app.get("/api/leads", (req, res) => {
+  const leadsPath = path.join(RESULTS_DIR, "leads.csv");
+  if (!fs.existsSync(leadsPath)) return res.json({ leads: [], count: 0 });
+  const csv = fs.readFileSync(leadsPath, "utf8");
+  const lines = csv.trim().split("\n").slice(1); // skip header
+  const leads = lines.map(l => {
+    const [timestamp, email, planId, filename] = l.split(",");
+    return { timestamp, email, planId, filename };
+  });
+  res.json({ leads, count: leads.length });
 });
 
 const PORT = process.env.PORT || 3456;
