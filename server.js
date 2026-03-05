@@ -75,7 +75,7 @@ const RESULTS_DIR = path.join(DATA_DIR, "results");
 if (!fs.existsSync(RESULTS_DIR)) fs.mkdirSync(RESULTS_DIR, { recursive: true });
 
 function generateId() {
-  return crypto.randomBytes(8).toString("hex");
+  return crypto.randomBytes(3).toString("hex"); // 6-char hash
 }
 
 // Use case pages
@@ -92,7 +92,161 @@ app.get('/resources/:slug', (req, res) => {
 
 app.use(express.static(path.join(__dirname, "public")));
 
-// Serve saved results
+// Plan permalink page
+app.get("/plan/:id", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "plan.html"));
+});
+
+// Upload-only endpoint: saves image + metadata, returns planId (no detection yet)
+app.post("/api/upload", upload.single("image"), (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No image uploaded" });
+    const { documentNo, customer } = req.body;
+    const filename = req.file.originalname;
+    const dims = imageSize(req.file.buffer);
+    const planId = generateId();
+    const planDir = path.join(RESULTS_DIR, planId);
+    fs.mkdirSync(planDir, { recursive: true });
+    fs.writeFileSync(path.join(planDir, filename), req.file.buffer);
+    fs.writeFileSync(path.join(planDir, "meta.json"), JSON.stringify({
+      id: planId, imageFile: filename, documentNo: documentNo || "", customer: customer || "",
+      imageDims: { width: dims.width, height: dims.height }, rooms: [], items: [], status: "pending",
+      createdAt: new Date().toISOString()
+    }, null, 2));
+    console.log(`Uploaded ${filename} → /plan/${planId}`);
+    res.json({ planId });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ error: err.message || "Upload failed" });
+  }
+});
+
+// SSE detection for an already-uploaded plan
+app.get("/api/detect/:planId", async (req, res) => {
+  const planDir = path.join(RESULTS_DIR, req.params.planId);
+  const metaPath = path.join(planDir, "meta.json");
+  if (!fs.existsSync(metaPath)) { return res.status(404).json({ error: "Plan not found" }); }
+
+  const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+
+  // If already processed, return cached results
+  if (meta.status === "done") {
+    res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" });
+    res.write(`event: result\ndata: ${JSON.stringify({ items: meta.items, rooms: meta.rooms })}\n\n`);
+    res.end();
+    return;
+  }
+
+  res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" });
+  const keepalive = setInterval(() => { res.write("event: keepalive\ndata: {}\n\n"); }, 15000);
+
+  try {
+    const imgBuf = fs.readFileSync(path.join(planDir, meta.imageFile));
+    const dims = meta.imageDims;
+    const filename = meta.imageFile;
+    const documentNo = meta.documentNo;
+    const customer = meta.customer;
+
+    res.write(`event: status\ndata: ${JSON.stringify({status:"Analyzing image..."})}\n\n`);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+
+    const prompt = `You are analyzing a salon floor plan architectural drawing.
+Detect all furniture items and return their bounding boxes.
+
+ITEM VOCABULARY (use ONLY these exact strings):
+${ITEM_VOCABULARY.map((v, i) => `${i + 1}. "${v}"`).join("\n")}
+
+I am providing LEGEND IMAGES showing exactly what each item looks like in the floor plan drawings. Use these to identify:
+- "47in Cabinet - LEFT " = 47in cabinet with sink on the LEFT side
+- "47in Cabinet - RIGHT" = 47in cabinet with sink on the RIGHT side  
+- "47in Cabinet - No Si" = 47in cabinet with NO sink
+- "63in Cabinet - LEFT " = 63in cabinet with sink on the LEFT side
+- "63in Cabinet - RIGHT" = 63in cabinet with sink on the RIGHT side
+
+INSTRUCTIONS:
+1. Find ALL room numbers/labels visible in the floor plan. Every item MUST have a RoomNo.
+2. Return bounding boxes using NORMALIZED coordinates on a 0-1000 scale (where 0,0 is top-left and 1000,1000 is bottom-right of the image).
+3. Only output items from the vocabulary. Do NOT hallucinate items.
+4. Be precise with bounding boxes — they should tightly wrap each item.
+5. Use the legend images to correctly distinguish cabinet types.
+6. Sliding doors appear as arc/swing lines at doorways.
+7. A "Back to Back Station" is two styling stations sharing a central divider.
+8. Count carefully — each physical object = exactly one entry.
+
+Return ONLY a JSON array where each element is:
+{"RoomNo":"<string>","RoomName":"","ItemName":"<exact vocabulary string>","box_2d":[ymin,xmin,ymax,xmax],"Accuracy":<0-100>}
+
+The box_2d values MUST be integers from 0 to 1000 representing normalized coordinates.`;
+
+    const contentParts = [{ text: prompt }];
+    if (legendCabinetsB64) {
+      contentParts.push({ text: "\nLEGEND 1 - Cabinet types (47in and 63in with LEFT/RIGHT/No Sink variations):" });
+      contentParts.push({ inlineData: { data: legendCabinetsB64, mimeType: "image/png" } });
+    }
+    if (legendItemsB64) {
+      contentParts.push({ text: "\nLEGEND 2 - Other items (Styling Chair, Back to Back Station, Shampoo Shuttle, Mirror, Rolling Cart):" });
+      contentParts.push({ inlineData: { data: legendItemsB64, mimeType: "image/png" } });
+    }
+    if (fewShotExample) {
+      const w = fewShotExample.imgDims.width, h = fewShotExample.imgDims.height;
+      contentParts.push({ text: `\nEXAMPLE: Here is a floor plan (${w}x${h} pixels) with its correct output:` });
+      contentParts.push({ inlineData: { data: fewShotExample.imgBase64, mimeType: "image/png" } });
+      contentParts.push({ text: `CORRECT OUTPUT (${fewShotExample.json.length} items):\n${JSON.stringify(fewShotExample.json, null, 2)}` });
+    }
+    contentParts.push({ text: `\nNow analyze this NEW floor plan (${dims.width}x${dims.height} pixels):` });
+    contentParts.push({ inlineData: { data: imgBuf.toString("base64"), mimeType: "image/png" } });
+
+    res.write(`event: status\ndata: ${JSON.stringify({status:"Waiting for Gemini response..."})}\n\n`);
+    const result = await model.generateContent(contentParts);
+    const text = result.response.text().trim();
+    const parsed = extractJsonArray(text);
+
+    const items = parsed.map((item, idx) => {
+      const box = item.box_2d;
+      const x = Math.round(box[1] / 1000 * dims.width);
+      const y = Math.round(box[0] / 1000 * dims.height);
+      const w = Math.round((box[3] - box[1]) / 1000 * dims.width);
+      const h = Math.round((box[2] - box[0]) / 1000 * dims.height);
+      return {
+        DocumentNo: documentNo || "", Customer: customer || "", DrawingFile: filename,
+        ID: idx + 1, RoomNo: String(item.RoomNo || ""), RoomName: String(item.RoomName || ""),
+        ItemName: item.ItemName,
+        Coordinates: JSON.stringify({ x, y, width: w, height: h }),
+        Accuracy: item.Accuracy ?? 0
+      };
+    });
+
+    let rooms = [];
+    try {
+      res.write('event: status\ndata: ' + JSON.stringify({status:'Detecting room boundaries via OCR...'}) + '\n\n');
+      const tmpImg = path.join(RESULTS_DIR, '_tmp_ocr_' + Date.now() + '.png');
+      fs.writeFileSync(tmpImg, imgBuf);
+      const roomJson = execSync('python3 detect_rooms.py "' + tmpImg + '"', { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, cwd: __dirname, timeout: 60000 });
+      rooms = JSON.parse(roomJson.trim());
+      try { fs.unlinkSync(tmpImg); } catch {}
+    } catch (e) {
+      console.warn('OCR room detection skipped:', e.message);
+    }
+
+    // Update meta with results
+    meta.items = items;
+    meta.rooms = rooms;
+    meta.status = "done";
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2));
+
+    console.log(`Detected ${items.length} items for plan ${req.params.planId}`);
+    clearInterval(keepalive);
+    res.write(`event: result\ndata: ${JSON.stringify({ items, rooms })}\n\n`);
+    res.end();
+  } catch (err) {
+    console.error("Detection error:", err);
+    clearInterval(keepalive);
+    res.write(`event: error\ndata: ${JSON.stringify({error: err.message || "Detection failed"})}\n\n`);
+    res.end();
+  }
+});
+
+// Serve saved results (legacy)
 app.get("/results/:id", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "viewer.html"));
 });

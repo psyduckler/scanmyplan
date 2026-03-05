@@ -82,15 +82,6 @@
   </div>
 </section>
 
-<section id="resultsSection" style="display:none;">
-  <div class="container">
-    <div class="split-view" id="splitView">
-      <div class="left-panel" id="leftPanel"></div>
-      <div class="right-panel" id="rightPanel"></div>
-    </div>
-  </div>
-</section>
-
 <section class="alt">
   <div class="container">
     <div class="stats-bar">
@@ -174,56 +165,11 @@ function handleFile(f) {
   reader.readAsDataURL(f);
 }
 
-function setupImage(container) {
-  container.innerHTML = '';
-  const wrapper = document.createElement('div');
-  wrapper.className = 'img-container';
-  imgEl = document.createElement('img');
-  imgEl.src = imgDataUrl;
-  imgEl.onload = () => {
-    naturalW = imgEl.naturalWidth;
-    naturalH = imgEl.naturalHeight;
-    canvasEl = document.createElement('canvas');
-    wrapper.appendChild(canvasEl);
-    requestAnimationFrame(() => {
-      canvasEl.width = imgEl.clientWidth;
-      canvasEl.height = imgEl.clientHeight;
-    });
-  };
-  wrapper.appendChild(imgEl);
-  container.appendChild(wrapper);
-}
-
-function highlightItem(idx) {
-  if (!canvasEl || !resultData || !imgEl) return;
-  const dispW = imgEl.clientWidth, dispH = imgEl.clientHeight;
-  if (dispW === 0 || dispH === 0) return;
-  canvasEl.width = dispW; canvasEl.height = dispH;
-  const ctx = canvasEl.getContext('2d');
-  ctx.clearRect(0, 0, dispW, dispH);
-  if (idx < 0 || idx >= resultData.length) return;
-  const item = resultData[idx];
-  const scaleX = dispW / naturalW, scaleY = dispH / naturalH;
-  const room = roomData.find(r => r.RoomNo === item.RoomNo);
-  if (room) {
-    const x = room.x * scaleX, y = room.y * scaleY, w = room.width * scaleX, h = room.height * scaleY;
-    const cx = x + w/2, cy = y + h/2, radius = Math.max(w, h) * 0.8;
-    ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255, 60, 60, 0.3)'; ctx.fill();
-    ctx.strokeStyle = '#ff3c3c'; ctx.lineWidth = 3; ctx.stroke();
-  }
-  document.querySelectorAll('tr.item-row').forEach((r, i) => r.classList.toggle('active', i === idx));
-}
-
-function clearHighlight() {
-  if (canvasEl) { const ctx = canvasEl.getContext('2d'); ctx.clearRect(0, 0, canvasEl.width, canvasEl.height); }
-  document.querySelectorAll('tr.item-row.active').forEach(r => r.classList.remove('active'));
-}
-
 detectBtn.addEventListener('click', async () => {
   if (!selectedFile) return;
   detectBtn.disabled = true;
-  statusEl.textContent = 'Uploading and analyzing... (this may take 1-3 minutes)';
+  detectBtn.textContent = 'Uploading…';
+  statusEl.textContent = '';
   errorEl.textContent = '';
 
   const formData = new FormData();
@@ -231,131 +177,18 @@ detectBtn.addEventListener('click', async () => {
   formData.append('documentNo', document.getElementById('documentNo').value);
   formData.append('customer', document.getElementById('customer').value);
 
-  const pw = document.getElementById('progressWrap');
-  const pf = document.getElementById('progressFill');
-  const pt = document.getElementById('progressText');
-  pw.style.display = 'block'; pf.style.width = '5%';
-  const startTime = Date.now();
-  let progressPct = 5;
-  const stages = [
-    {pct: 10, t: 2, msg: 'Uploading image...'},
-    {pct: 20, t: 5, msg: 'Image received, starting analysis...'},
-    {pct: 35, t: 15, msg: 'Gemini is analyzing the floor plan...'},
-    {pct: 50, t: 30, msg: 'Identifying furniture items...'},
-    {pct: 65, t: 60, msg: 'Mapping item locations...'},
-    {pct: 75, t: 90, msg: 'Almost there — finalizing results...'},
-    {pct: 82, t: 120, msg: 'Still working — large floor plan...'},
-    {pct: 88, t: 180, msg: 'Detecting room boundaries...'},
-    {pct: 92, t: 240, msg: 'Wrapping up — almost done...'},
-  ];
-  const progressTimer = setInterval(() => {
-    const elapsed = (Date.now() - startTime) / 1000;
-    for (const s of stages) {
-      if (elapsed >= s.t && progressPct < s.pct) { progressPct = s.pct; pf.style.width = progressPct + '%'; }
-    }
-    const currentStage = [...stages].reverse().find(s => elapsed >= s.t) || stages[0];
-    pt.textContent = currentStage.msg + ' (' + Math.round(elapsed) + 's)';
-  }, 1000);
-
   try {
-    const response = await fetch('/api/detect', { method: 'POST', body: formData });
-    const fullText = await response.text();
-    clearInterval(progressTimer);
-    const events = fullText.split('\n\n');
-    for (const evt of events) {
-      const lines = evt.trim().split('\n');
-      let etype = '', edata = '';
-      for (const ln of lines) {
-        if (ln.startsWith('event: ')) etype = ln.slice(7);
-        else if (ln.startsWith('data: ')) edata = ln.slice(6);
-      }
-      if (!edata) continue;
-      try {
-        const d = JSON.parse(edata);
-        if (etype === 'status') { pt.textContent = d.status; }
-        else if (etype === 'result') {
-          pf.style.width = '100%';
-          pt.textContent = 'Done! ' + d.items.length + ' items detected (' + Math.round((Date.now() - startTime) / 1000) + 's)';
-          statusEl.textContent = '';
-          setTimeout(() => { pw.style.display = 'none'; }, 3000);
-          roomData = d.rooms || [];
-          showResults(d.items, d.resultUrl);
-        }
-        else if (etype === 'error') { statusEl.textContent = ''; errorEl.textContent = 'Error: ' + d.error; pw.style.display = 'none'; }
-      } catch(e) { console.error('Parse error:', e); }
-    }
-  } catch (err) { clearInterval(progressTimer); errorEl.textContent = 'Error: ' + err.message; statusEl.textContent = ''; pw.style.display = 'none'; }
-  detectBtn.disabled = false;
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.error) { errorEl.textContent = 'Error: ' + data.error; detectBtn.disabled = false; detectBtn.textContent = 'Detect Items'; return; }
+    window.location.href = '/plan/' + data.planId;
+  } catch (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+    detectBtn.disabled = false;
+    detectBtn.textContent = 'Detect Items';
+  }
 });
 
-function showResults(items, resultUrl) {
-  resultData = items;
-  const section = document.getElementById('resultsSection');
-  section.style.display = 'block';
-  const splitView = document.getElementById('splitView');
-  splitView.style.display = 'flex';
-
-  let html = '<div style="font-weight:600;font-size:14px;margin-bottom:8px;">' + items.length + ' items detected';
-  if (resultUrl) html += ' — <a href="' + resultUrl + '" target="_blank" style="color:var(--primary)">📎 Permalink</a>';
-  html += '</div>';
-  html += '<div class="download-btns"><button onclick="downloadJSON()">📥 JSON</button><button onclick="downloadCSV()">📥 CSV</button></div>';
-  const sorted = items.map((item, origIdx) => ({...item, _origIdx: origIdx}));
-  sorted.sort((a, b) => {
-    const na = parseInt(a.RoomNo) || 0, nb = parseInt(b.RoomNo) || 0;
-    if (na !== nb) return na - nb;
-    return a.RoomNo.localeCompare(b.RoomNo);
-  });
-  resultData = sorted;
-  html += '<table><tr><th>ID</th><th>Room</th><th>Item</th><th>Acc</th><th></th></tr>';
-  let currentRoom = null;
-  for (let i = 0; i < sorted.length; i++) {
-    const item = sorted[i];
-    if (item.RoomNo !== currentRoom) {
-      currentRoom = item.RoomNo;
-      const roomCount = sorted.filter(x => x.RoomNo === currentRoom).length;
-      html += '<tr class="room-header"><td colspan="5">Room ' + currentRoom + ' — ' + roomCount + ' item' + (roomCount !== 1 ? 's' : '') + '</td></tr>';
-    }
-    html += '<tr class="item-row" data-idx="' + i + '" onmouseenter="highlightItem(' + i + ')" onmouseleave="clearHighlight()"><td>' + item.ID + '</td><td>' + item.RoomNo + '</td><td class="item-name">' + item.ItemName + '</td><td>' + item.Accuracy + '</td><td class="actions"><button class="icon-btn" onclick="editItem(' + i + ')" title="Edit">✏️</button><button class="icon-btn" onclick="deleteItem(' + i + ')" title="Delete">🗑️</button></td></tr>';
-  }
-  html += '</table>';
-  document.getElementById('leftPanel').innerHTML = html;
-  setupImage(document.getElementById('rightPanel'));
-  section.scrollIntoView({ behavior: 'smooth' });
-}
-
-function editItem(idx) {
-  const item = resultData[idx];
-  const td = document.querySelector('tr[data-idx="' + idx + '"] .item-name');
-  if (td.querySelector('input')) return;
-  const input = document.createElement('input');
-  input.value = item.ItemName;
-  input.onkeydown = function(e) {
-    if (e.key === 'Enter') { item.ItemName = input.value; td.textContent = input.value; }
-    if (e.key === 'Escape') { td.textContent = item.ItemName; }
-  };
-  input.onblur = function() { item.ItemName = input.value; td.textContent = input.value; };
-  td.textContent = ''; td.appendChild(input); input.focus(); input.select();
-}
-
-function deleteItem(idx) {
-  resultData.splice(idx, 1);
-  showResults(resultData);
-}
-
-function downloadJSON() {
-  if (!resultData) return;
-  const blob = new Blob([JSON.stringify(resultData, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = (document.getElementById('documentNo').value || 'output') + '.json'; a.click();
-}
-function downloadCSV() {
-  if (!resultData) return;
-  const headers = Object.keys(resultData[0]).join(',');
-  const rows = resultData.map(r => Object.values(r).map(v => '"' + v + '"').join(','));
-  const blob = new Blob([headers + '\n' + rows.join('\n')], { type: 'text/csv' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = (document.getElementById('documentNo').value || 'output') + '.csv'; a.click();
-}
 </script>
 </body>
 </html>

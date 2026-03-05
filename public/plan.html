@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan Analysis | ScanMyPlan</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="stylesheet" href="/styles.css">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-4MP227JX2R"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-4MP227JX2R');</script>
+<style>
+  .plan-container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+  .plan-meta { margin-bottom: 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .plan-meta .plan-id { font-family: monospace; background: #f1f5f9; padding: 4px 10px; border-radius: 4px; font-size: 13px; color: #64748b; }
+  .plan-meta .plan-info { font-size: 14px; color: #475569; }
+  .plan-meta .back-link { color: var(--primary); text-decoration: none; font-size: 14px; }
+  .plan-meta .back-link:hover { text-decoration: underline; }
+
+  /* Progress area */
+  .plan-progress { max-width: 640px; margin: 80px auto; text-align: center; }
+  .plan-progress h2 { font-size: 22px; color: #1e293b; margin-bottom: 8px; }
+  .plan-progress .plan-progress-sub { font-size: 14px; color: #64748b; margin-bottom: 24px; }
+  .progress-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #00b4d8); border-radius: 3px; transition: width 0.5s ease; width: 0%; }
+  .progress-text { font-size: 13px; color: #666; margin-top: 10px; }
+  .plan-error { color: #dc2626; margin-top: 16px; font-size: 14px; }
+
+  /* Split results view */
+  .split-view { display: flex; gap: 24px; align-items: flex-start; }
+  .left-panel { flex: 0 0 460px; max-height: calc(100vh - 120px); overflow-y: auto; position: sticky; top: 84px; }
+  .right-panel { flex: 1; position: sticky; top: 84px; }
+
+  .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .result-header .item-count { font-weight: 700; font-size: 16px; color: #1e293b; }
+  .download-btns { display: flex; gap: 8px; }
+  .download-btns button { padding: 6px 14px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+  .download-btns button:hover { background: #f8fafc; border-color: #94a3b8; }
+
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+  th { background: #f8fafc; font-weight: 600; color: #475569; position: sticky; top: 0; z-index: 1; }
+  tr.room-header td { background: #e2e8f0; font-weight: 700; font-size: 13px; color: #334155; padding: 10px; border-bottom: 2px solid #cbd5e1; }
+  tr.item-row { cursor: pointer; transition: background 0.15s; }
+  tr.item-row:hover { background: #eff6ff; }
+  tr.item-row.active { background: #dbeafe; }
+  .icon-btn { background: none; border: none; cursor: pointer; padding: 2px 4px; font-size: 14px; opacity: 0.4; transition: opacity 0.2s; }
+  .icon-btn:hover { opacity: 1; }
+  .actions { white-space: nowrap; width: 56px; }
+  .item-name input { border: 1px solid var(--primary); padding: 2px 4px; font-size: 13px; width: 100%; border-radius: 3px; }
+
+  .img-container { position: relative; display: inline-block; }
+  .img-container img { display: block; max-width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; }
+  .img-container canvas { position: absolute; top: 0; left: 0; pointer-events: none; border-radius: 8px; }
+
+  .plan-preview-thumb { max-width: 200px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 16px; }
+
+  @media (max-width: 900px) {
+    .split-view { flex-direction: column-reverse; }
+    .left-panel { flex: none; width: 100%; max-height: none; position: static; }
+    .right-panel { position: static; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <div class="header-inner">
+      <a href="/" class="logo"><div class="logo-icon">📐</div>ScanMyPlan</a>
+      <nav>
+        <a href="/#features">Features</a>
+        <a href="/#how-it-works">How It Works</a>
+        <a href="/#demo">Demo</a>
+        <a href="/resources">Resources</a>
+        <a href="/#cta" class="header-cta">Get Started</a>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<section style="padding-top: 32px; min-height: 70vh;">
+  <div class="plan-container">
+    <div class="plan-meta" id="planMeta">
+      <a href="/" class="back-link">← New Scan</a>
+    </div>
+
+    <!-- Loading / Progress state -->
+    <div id="progressArea" class="plan-progress">
+      <h2>Analyzing your floor plan…</h2>
+      <p class="plan-progress-sub">AI is detecting items, rooms, and layouts. This usually takes 1–3 minutes.</p>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">Starting…</div>
+      <div class="plan-error" id="errorText"></div>
+      <img id="previewThumb" class="plan-preview-thumb" style="display:none;">
+    </div>
+
+    <!-- Results state -->
+    <div class="split-view" id="splitView" style="display:none;">
+      <div class="left-panel" id="leftPanel"></div>
+      <div class="right-panel" id="rightPanel"></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand"><a href="/" class="logo"><div class="logo-icon">📐</div>ScanMyPlan</a><p>AI-powered floor plan analysis for furniture detection, inventory management, and compliance.</p></div>
+      <div class="footer-col"><h4>Product</h4><ul><li><a href="/#features">Features</a></li><li><a href="/#demo">Demo</a></li><li><a href="/resources">Resources</a></li></ul></div>
+      <div class="footer-col"><h4>Use Cases</h4><ul><li><a href="/furniture-fixture-detection">Furniture &amp; Fixtures</a></li><li><a href="/auto-quoting-estimation">Auto-Quoting</a></li><li><a href="/compliance-code-checking">Compliance Checking</a></li><li><a href="/space-optimization">Space Optimization</a></li><li><a href="/insurance-claims">Insurance &amp; Claims</a></li><li><a href="/real-estate-property">Real Estate</a></li></ul></div>
+      <div class="footer-col"><h4>Company</h4><ul><li><a href="/resources">Blog</a></li></ul></div>
+    </div>
+    <div class="footer-bottom"><p>&copy; 2026 ScanMyPlan. All rights reserved.</p></div>
+  </div>
+</footer>
+
+<script>
+const planId = window.location.pathname.split('/').pop();
+let resultData = null, roomData = [], imgEl = null, canvasEl = null, naturalW = 0, naturalH = 0;
+
+// Progress animation
+const pf = document.getElementById('progressFill');
+const pt = document.getElementById('progressText');
+const startTime = Date.now();
+let progressPct = 5;
+pf.style.width = '5%';
+
+const stages = [
+  {pct: 10, t: 2, msg: 'Connecting to analysis engine…'},
+  {pct: 20, t: 5, msg: 'Image received, starting analysis…'},
+  {pct: 35, t: 15, msg: 'AI is analyzing the floor plan…'},
+  {pct: 50, t: 30, msg: 'Identifying furniture items…'},
+  {pct: 65, t: 60, msg: 'Mapping item locations…'},
+  {pct: 75, t: 90, msg: 'Almost there — finalizing results…'},
+  {pct: 82, t: 120, msg: 'Still working — large floor plan…'},
+  {pct: 88, t: 180, msg: 'Detecting room boundaries…'},
+  {pct: 92, t: 240, msg: 'Wrapping up — almost done…'},
+];
+const progressTimer = setInterval(() => {
+  const elapsed = (Date.now() - startTime) / 1000;
+  for (const s of stages) {
+    if (elapsed >= s.t && progressPct < s.pct) { progressPct = s.pct; pf.style.width = progressPct + '%'; }
+  }
+  const currentStage = [...stages].reverse().find(s => elapsed >= s.t) || stages[0];
+  pt.textContent = currentStage.msg + ' (' + Math.round(elapsed) + 's)';
+}, 1000);
+
+// Show thumbnail preview + meta info
+async function loadMeta() {
+  try {
+    const res = await fetch('/api/results/' + planId);
+    if (!res.ok) return;
+    const meta = await res.json();
+    naturalW = meta.imageDims.width;
+    naturalH = meta.imageDims.height;
+    // Update meta bar
+    const metaEl = document.getElementById('planMeta');
+    let info = '';
+    if (meta.documentNo) info += 'Doc: ' + meta.documentNo;
+    if (meta.customer) info += (info ? ' · ' : '') + 'Customer: ' + meta.customer;
+    info += (info ? ' · ' : '') + meta.imageFile;
+    metaEl.innerHTML = '<a href="/" class="back-link">← New Scan</a><span class="plan-id">' + planId + '</span><span class="plan-info">' + info + '</span>';
+    // Show thumbnail
+    const thumb = document.getElementById('previewThumb');
+    thumb.src = '/api/results/' + planId + '/image';
+    thumb.style.display = 'block';
+  } catch {}
+}
+
+// Start detection via SSE
+async function startDetection() {
+  try {
+    const response = await fetch('/api/detect/' + planId);
+    const fullText = await response.text();
+    clearInterval(progressTimer);
+    const events = fullText.split('\n\n');
+    for (const evt of events) {
+      const lines = evt.trim().split('\n');
+      let etype = '', edata = '';
+      for (const ln of lines) {
+        if (ln.startsWith('event: ')) etype = ln.slice(7);
+        else if (ln.startsWith('data: ')) edata = ln.slice(6);
+      }
+      if (!edata) continue;
+      try {
+        const d = JSON.parse(edata);
+        if (etype === 'status') { pt.textContent = d.status; }
+        else if (etype === 'result') {
+          pf.style.width = '100%';
+          pt.textContent = 'Done! ' + d.items.length + ' items detected (' + Math.round((Date.now() - startTime) / 1000) + 's)';
+          setTimeout(() => {
+            document.getElementById('progressArea').style.display = 'none';
+            roomData = d.rooms || [];
+            showResults(d.items);
+          }, 800);
+        }
+        else if (etype === 'error') {
+          clearInterval(progressTimer);
+          pf.style.width = '0%';
+          pt.textContent = '';
+          document.getElementById('errorText').textContent = 'Error: ' + d.error;
+        }
+      } catch(e) { console.error('Parse error:', e); }
+    }
+  } catch (err) {
+    clearInterval(progressTimer);
+    document.getElementById('errorText').textContent = 'Error: ' + err.message;
+  }
+}
+
+function showResults(items) {
+  resultData = items;
+  const sorted = [...items];
+  sorted.sort((a, b) => {
+    const na = parseInt(a.RoomNo) || 0, nb = parseInt(b.RoomNo) || 0;
+    if (na !== nb) return na - nb;
+    return a.RoomNo.localeCompare(b.RoomNo);
+  });
+  resultData = sorted;
+
+  // Left panel: metadata + table + exports
+  let html = '<div class="result-header"><span class="item-count">' + sorted.length + ' items detected</span>';
+  html += '<div class="download-btns"><button onclick="downloadJSON()">📥 JSON</button><button onclick="downloadCSV()">📥 CSV</button></div></div>';
+  html += '<table><tr><th>ID</th><th>Room</th><th>Item</th><th>Acc</th><th></th></tr>';
+  let currentRoom = null;
+  for (let i = 0; i < sorted.length; i++) {
+    const item = sorted[i];
+    if (item.RoomNo !== currentRoom) {
+      currentRoom = item.RoomNo;
+      const roomCount = sorted.filter(x => x.RoomNo === currentRoom).length;
+      html += '<tr class="room-header"><td colspan="5">Room ' + currentRoom + ' — ' + roomCount + ' item' + (roomCount !== 1 ? 's' : '') + '</td></tr>';
+    }
+    html += '<tr class="item-row" data-idx="' + i + '" onmouseenter="highlightItem(' + i + ')" onmouseleave="clearHighlight()"><td>' + item.ID + '</td><td>' + item.RoomNo + '</td><td class="item-name">' + item.ItemName + '</td><td>' + item.Accuracy + '</td><td class="actions"><button class="icon-btn" onclick="editItem(' + i + ')" title="Edit">✏️</button><button class="icon-btn" onclick="deleteItem(' + i + ')" title="Delete">🗑️</button></td></tr>';
+  }
+  html += '</table>';
+  document.getElementById('leftPanel').innerHTML = html;
+
+  // Right panel: sticky floorplan image
+  const rp = document.getElementById('rightPanel');
+  rp.innerHTML = '';
+  const wrapper = document.createElement('div');
+  wrapper.className = 'img-container';
+  imgEl = document.createElement('img');
+  imgEl.src = '/api/results/' + planId + '/image';
+  imgEl.onload = () => {
+    naturalW = imgEl.naturalWidth;
+    naturalH = imgEl.naturalHeight;
+    canvasEl = document.createElement('canvas');
+    wrapper.appendChild(canvasEl);
+    requestAnimationFrame(() => { canvasEl.width = imgEl.clientWidth; canvasEl.height = imgEl.clientHeight; });
+  };
+  wrapper.appendChild(imgEl);
+  rp.appendChild(wrapper);
+
+  document.getElementById('splitView').style.display = 'flex';
+}
+
+function highlightItem(idx) {
+  if (!canvasEl || !resultData || !imgEl) return;
+  const dispW = imgEl.clientWidth, dispH = imgEl.clientHeight;
+  if (dispW === 0 || dispH === 0) return;
+  canvasEl.width = dispW; canvasEl.height = dispH;
+  const ctx = canvasEl.getContext('2d');
+  ctx.clearRect(0, 0, dispW, dispH);
+  if (idx < 0 || idx >= resultData.length) return;
+  const item = resultData[idx];
+  const room = roomData.find(r => r.RoomNo === item.RoomNo);
+  if (room) {
+    const sx = dispW / naturalW, sy = dispH / naturalH;
+    const x = room.x * sx, y = room.y * sy, w = room.width * sx, h = room.height * sy;
+    ctx.fillStyle = 'rgba(0, 120, 255, 0.18)'; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#0078ff'; ctx.lineWidth = 3;
+    ctx.setLineDash([8, 4]); ctx.strokeRect(x, y, w, h); ctx.setLineDash([]);
+    const label = 'Room ' + item.RoomNo;
+    ctx.font = 'bold 14px sans-serif';
+    const tw = ctx.measureText(label).width;
+    const ly = y > 24 ? y - 6 : y + h + 18;
+    ctx.fillStyle = 'rgba(0,80,200,0.85)'; ctx.fillRect(x - 2, ly - 16, tw + 10, 22);
+    ctx.fillStyle = '#fff'; ctx.fillText(label, x + 3, ly);
+  }
+  document.querySelectorAll('tr.item-row').forEach((r, i) => r.classList.toggle('active', i === idx));
+}
+
+function clearHighlight() {
+  if (canvasEl) { const ctx = canvasEl.getContext('2d'); ctx.clearRect(0, 0, canvasEl.width, canvasEl.height); }
+  document.querySelectorAll('tr.item-row.active').forEach(r => r.classList.remove('active'));
+}
+
+function editItem(idx) {
+  const item = resultData[idx];
+  const td = document.querySelector('tr[data-idx="' + idx + '"] .item-name');
+  if (td.querySelector('input')) return;
+  const input = document.createElement('input');
+  input.value = item.ItemName;
+  input.onkeydown = function(e) {
+    if (e.key === 'Enter') { item.ItemName = input.value; td.textContent = input.value; }
+    if (e.key === 'Escape') { td.textContent = item.ItemName; }
+  };
+  input.onblur = function() { item.ItemName = input.value; td.textContent = input.value; };
+  td.textContent = ''; td.appendChild(input); input.focus(); input.select();
+}
+
+function deleteItem(idx) {
+  resultData.splice(idx, 1);
+  showResults(resultData);
+}
+
+function downloadJSON() {
+  if (!resultData) return;
+  const blob = new Blob([JSON.stringify(resultData, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'plan-' + planId + '.json'; a.click();
+}
+
+function downloadCSV() {
+  if (!resultData) return;
+  const headers = Object.keys(resultData[0]).join(',');
+  const rows = resultData.map(r => Object.values(r).map(v => '"' + v + '"').join(','));
+  const blob = new Blob([headers + '\n' + rows.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'plan-' + planId + '.csv'; a.click();
+}
+
+// Kick off
+loadMeta();
+startDetection();
+</script>
+</body>
+</html>
