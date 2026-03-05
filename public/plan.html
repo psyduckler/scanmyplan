@@ -170,6 +170,13 @@ async function loadMeta() {
 async function startDetection() {
   try {
     const response = await fetch('/api/detect/' + planId);
+    if (!response.ok) {
+      clearInterval(progressTimer);
+      pf.style.width = '0%';
+      pt.textContent = '';
+      document.getElementById('errorText').textContent = 'This plan is no longer available. Please upload the floor plan again.';
+      return;
+    }
     const fullText = await response.text();
     clearInterval(progressTimer);
     const events = fullText.split('\n\n');
