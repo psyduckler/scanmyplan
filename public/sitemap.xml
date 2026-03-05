@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://scanmyplan.com/</loc><priority>1.0</priority></url>
+  <url><loc>https://scanmyplan.com/auto-quoting-estimation</loc><priority>0.8</priority></url>
+  <url><loc>https://scanmyplan.com/compliance-code-checking</loc><priority>0.8</priority></url>
+  <url><loc>https://scanmyplan.com/furniture-fixture-detection</loc><priority>0.8</priority></url>
+  <url><loc>https://scanmyplan.com/insurance-claims</loc><priority>0.8</priority></url>
+  <url><loc>https://scanmyplan.com/real-estate-property</loc><priority>0.8</priority></url>
+  <url><loc>https://scanmyplan.com/space-optimization</loc><priority>0.8</priority></url>
+  <url><loc>https://scanmyplan.com/resources</loc><priority>0.7</priority></url>
+  <url><loc>https://scanmyplan.com/resources/what-is-a-floorplan-detector</loc><priority>0.6</priority></url>
+  <url><loc>https://scanmyplan.com/resources/what-is-a-floorplan-detector-and-how-does-it-work</loc><priority>0.6</priority></url>
+  <url><loc>https://scanmyplan.com/resources/how-floorplan-detection-works</loc><priority>0.6</priority></url>
+  <url><loc>https://scanmyplan.com/resources/floorplan-detection-api</loc><priority>0.6</priority></url>
+</urlset>
